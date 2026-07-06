@@ -1,11 +1,55 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient'
-import { useTrans } from './context/LangContext'
 import Login from './pages/Login'
 import ProfileSetup from './pages/ProfileSetup'
 import Dashboard from './pages/Dashboard'
 import EarningsScreen from './pages/EarningsScreen'
 import TimerScreen from './pages/TimerScreen'
+
+function InstallBanner() {
+  const [prompt, setPrompt] = useState(null)
+  const [dismissed, setDismissed] = useState(false)
+
+  useEffect(() => {
+    function handler(e) {
+      e.preventDefault()
+      setPrompt(e)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  if (!prompt || dismissed) return null
+
+  async function install() {
+    prompt.prompt()
+    const { outcome } = await prompt.userChoice
+    if (outcome === 'accepted' || outcome === 'dismissed') {
+      setPrompt(null)
+      setDismissed(true)
+    }
+  }
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-3 bg-green-700 px-4 py-3 shadow-lg">
+      <p className="text-sm font-medium text-white">Install Kisan Go on your phone</p>
+      <div className="flex shrink-0 gap-2">
+        <button
+          onClick={() => setDismissed(true)}
+          className="rounded-lg px-3 py-1.5 text-xs font-medium text-green-200 hover:text-white"
+        >
+          Not now
+        </button>
+        <button
+          onClick={install}
+          className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-green-700 hover:bg-green-50"
+        >
+          Install
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function Loading() {
   return (
@@ -78,13 +122,13 @@ export default function App() {
     activeTab,
     onTabChange: setActiveTab,
   }
-  if (activeTab === 'earnings') {
-    return <EarningsScreen {...sharedProps} />
-  }
   return (
-    <Dashboard
-      {...sharedProps}
-      onStartJob={(customer) => setActiveJob({ customer })}
-    />
+    <>
+      {activeTab === 'earnings'
+        ? <EarningsScreen {...sharedProps} />
+        : <Dashboard {...sharedProps} onStartJob={(customer) => setActiveJob({ customer })} />
+      }
+      <InstallBanner />
+    </>
   )
 }
