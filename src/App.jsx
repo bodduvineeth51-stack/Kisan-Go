@@ -1,35 +1,20 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient'
+import { useTrans } from './context/LangContext'
 import Login from './pages/Login'
 import ProfileSetup from './pages/ProfileSetup'
+import Dashboard from './pages/Dashboard'
+import EarningsScreen from './pages/EarningsScreen'
+import TimerScreen from './pages/TimerScreen'
 
 function Loading() {
   return (
-    <div className="flex min-h-svh items-center justify-center text-gray-500">
-      Loading…
-    </div>
-  )
-}
-
-function Dashboard({ owner, onSignOut }) {
-  return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-4 bg-gray-50 px-4 text-center">
-      <h1 className="text-2xl font-semibold text-gray-900">
-        Welcome, {owner.name}
-      </h1>
-      <ul className="text-sm text-gray-600">
-        {owner.vehicle_rates.map((v) => (
-          <li key={v.type}>
-            {v.type} — ₹{v.hourly_rate}/hr
-          </li>
-        ))}
-      </ul>
-      <button
-        onClick={onSignOut}
-        className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-      >
-        Sign out
-      </button>
+    <div className="flex min-h-svh flex-col items-center justify-center gap-5 bg-green-600">
+      <div className="text-center">
+        <h1 className="text-4xl font-black tracking-tight text-white">Kisan Go</h1>
+        <p className="mt-1 text-sm text-green-200">కిసాన్ గో</p>
+      </div>
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-400 border-t-white" />
     </div>
   )
 }
@@ -37,6 +22,8 @@ function Dashboard({ owner, onSignOut }) {
 export default function App() {
   const [session, setSession] = useState(undefined) // undefined = loading, null = signed out
   const [owner, setOwner] = useState(undefined)
+  const [activeJob, setActiveJob] = useState(null)  // { customer } | null
+  const [activeTab, setActiveTab] = useState('customers') // 'customers' | 'earnings'
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -75,5 +62,29 @@ export default function App() {
       />
     )
   }
-  return <Dashboard owner={owner} onSignOut={() => supabase.auth.signOut()} />
+  if (activeJob) {
+    return (
+      <TimerScreen
+        customer={activeJob.customer}
+        owner={owner}
+        onComplete={() => setActiveJob(null)}
+        onBack={() => setActiveJob(null)}
+      />
+    )
+  }
+  const sharedProps = {
+    owner,
+    onSignOut: () => supabase.auth.signOut(),
+    activeTab,
+    onTabChange: setActiveTab,
+  }
+  if (activeTab === 'earnings') {
+    return <EarningsScreen {...sharedProps} />
+  }
+  return (
+    <Dashboard
+      {...sharedProps}
+      onStartJob={(customer) => setActiveJob({ customer })}
+    />
+  )
 }

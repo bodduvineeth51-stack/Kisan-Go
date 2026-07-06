@@ -1,18 +1,14 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useTrans, LangToggle } from '../context/LangContext'
 
 const VEHICLE_TYPES = [
-  'Tractor',
-  'Harvester',
-  'Rotavator',
-  'Trailer',
-  'Cultivator',
-  'Seed Drill',
-  'Sprayer',
-  'Thresher',
+  'Tractor', 'Harvester', 'Rotavator', 'Trailer',
+  'Cultivator', 'Seed Drill', 'Sprayer', 'Thresher',
 ]
 
 export default function ProfileSetup({ user, onComplete }) {
+  const { t } = useTrans()
   const [name, setName] = useState('')
   const [selectedTypes, setSelectedTypes] = useState([])
   const [rates, setRates] = useState({})
@@ -21,31 +17,19 @@ export default function ProfileSetup({ user, onComplete }) {
 
   function toggleType(type) {
     setSelectedTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+      prev.includes(type) ? prev.filter((v) => v !== type) : [...prev, type]
     )
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-
-    if (!name.trim()) {
-      setError('Enter your name.')
-      return
-    }
-    if (selectedTypes.length === 0) {
-      setError('Select at least one vehicle type.')
-      return
-    }
-    const vehicleRates = selectedTypes.map((type) => ({
-      type,
-      hourly_rate: Number(rates[type]),
-    }))
+    if (!name.trim()) { setError(t('enterName')); return }
+    if (selectedTypes.length === 0) { setError(t('selectVehicleErr')); return }
+    const vehicleRates = selectedTypes.map((type) => ({ type, hourly_rate: Number(rates[type]) }))
     if (vehicleRates.some((v) => !v.hourly_rate || v.hourly_rate <= 0)) {
-      setError('Enter a valid hourly rate for each selected vehicle type.')
-      return
+      setError(t('validRateErr')); return
     }
-
     setLoading(true)
     const { error } = await supabase.from('owners').insert({
       id: user.id,
@@ -54,40 +38,39 @@ export default function ProfileSetup({ user, onComplete }) {
       vehicle_rates: vehicleRates,
     })
     setLoading(false)
-
-    if (error) {
-      setError(error.message)
-      return
-    }
+    if (error) { setError(error.message); return }
     onComplete()
   }
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-gray-50 px-4 py-10">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold text-gray-900">Set up your profile</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Tell us about the vehicles you rent out.
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{t('profileTitle')}</h1>
+            <p className="mt-1 text-sm text-gray-500">{t('profileSub')}</p>
+          </div>
+          <LangToggle variant="light" />
+        </div>
 
         <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-              Your name
+              {t('yourName')}
             </label>
             <input
               id="name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ramesh Kumar"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600"
+              placeholder={t('namePlaceholder')}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600"
             />
           </div>
 
           <div>
             <span className="block text-sm font-medium text-gray-700">
-              Vehicle types & hourly rate
+              {t('vehicleSection')}
             </span>
             <div className="mt-2 space-y-2">
               {VEHICLE_TYPES.map((type) => {
@@ -113,7 +96,7 @@ export default function ProfileSetup({ user, onComplete }) {
                         <input
                           type="number"
                           min="1"
-                          placeholder="Rate/hr"
+                          placeholder={t('ratePlaceholder')}
                           value={rates[type] ?? ''}
                           onChange={(e) =>
                             setRates((prev) => ({ ...prev, [type]: e.target.value }))
@@ -133,9 +116,9 @@ export default function ProfileSetup({ user, onComplete }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-green-600 py-2 font-medium text-white transition hover:bg-green-700 disabled:opacity-60"
+            className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white transition hover:bg-green-700 disabled:opacity-60"
           >
-            {loading ? 'Saving…' : 'Save profile'}
+            {loading ? t('savingProfile') : t('saveProfile')}
           </button>
         </form>
       </div>
