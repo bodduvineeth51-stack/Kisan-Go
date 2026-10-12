@@ -1,6 +1,18 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { RecaptchaVerifier, signInWithPhoneNumber, signOut } from 'firebase/auth'
 import { supabase } from '../lib/supabaseClient'
+import { getFirebaseAuth } from '../lib/firebaseClient'
 import { useTrans, LangToggle } from '../context/LangContext'
+
+// Firebase error codes worth a plain-language message; anything else falls
+// back to the generic login error.
+const FIREBASE_ERRORS = {
+  'auth/invalid-phone-number': 'invalidPhone',
+  'auth/invalid-verification-code': 'wrongOtp',
+  'auth/code-expired': 'otpExpired',
+  'auth/too-many-requests': 'tooManyAttempts',
+  'auth/quota-exceeded': 'tooManyAttempts',
+}
 
 export default function Login() {
   const { t } = useTrans()
@@ -9,18 +21,39 @@ export default function Login() {
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const recaptchaEl = useRef(null)
+  const verifier = useRef(null)
+  const confirmation = useRef(null)
 
   const e164Phone = `+91${phone}`
 
+  function showError(err) {
+    console.error('[login]', err)
+    const key = FIREBASE_ERRORS[err?.code]
+    // Unmapped failures keep their code on screen so they can be reported
+    setError(key ? t(key) : `${t('loginFailed')}${err?.code ? ` (${err.code})` : ''}`)
+  }
+
+  // Firebase sends the SMS and checks the code; the firebase-login edge
+  // function then swaps the Firebase ID token for a Supabase session.
   async function handleSendOtp(e) {
     e.preventDefault()
     setError('')
     if (!/^\d{10}$/.test(phone)) { setError(t('invalidPhone')); return }
     setLoading(true)
-    const { error } = await supabase.auth.signInWithOtp({ phone: e164Phone })
-    setLoading(false)
-    if (error) { setError(error.message); return }
-    setStep('otp')
+    try {
+      const auth = getFirebaseAuth()
+      verifier.current ??= new RecaptchaVerifier(auth, recaptchaEl.current, { size: 'invisible' })
+      confirmation.current = await signInWithPhoneNumber(auth, e164Phone, verifier.current)
+      setStep('otp')
+    } catch (err) {
+      // A used or failed reCAPTCHA can't be reused for the next attempt
+      verifier.current?.clear()
+      verifier.current = null
+      showError(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleVerifyOtp(e) {
@@ -28,9 +61,24 @@ export default function Login() {
     setError('')
     if (!/^\d{6}$/.test(otp)) { setError(t('invalidOtp')); return }
     setLoading(true)
-    const { error } = await supabase.auth.verifyOtp({ phone: e164Phone, token: otp, type: 'sms' })
-    setLoading(false)
-    if (error) setError(error.message)
+    try {
+      const { user } = await confirmation.current.confirm(otp)
+      const idToken = await user.getIdToken()
+      const { data, error: fnError } = await supabase.functions.invoke('firebase-login', {
+        body: { id_token: idToken },
+      })
+      if (fnError) throw fnError
+      const { error: sessionError } = await supabase.auth.verifyOtp({
+        token_hash: data.token_hash,
+        type: data.type,
+      })
+      if (sessionError) throw sessionError
+      // Supabase holds the session from here on
+      await signOut(getFirebaseAuth())
+    } catch (err) {
+      showError(err)
+      setLoading(false)
+    }
   }
 
   return (
@@ -111,6 +159,7 @@ export default function Login() {
             </button>
           </form>
         )}
+        <div ref={recaptchaEl} />
       </div>
     </div>
   )

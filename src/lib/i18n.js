@@ -21,6 +21,10 @@ const translations = {
     testHint: 'Test: 9876543210 · Code: 123456',
     invalidPhone: 'Enter a valid 10-digit phone number.',
     invalidOtp: 'Enter the 6-digit code.',
+    wrongOtp: 'That code is not correct. Try again.',
+    otpExpired: 'That code has expired. Send a new one.',
+    tooManyAttempts: 'Too many attempts. Wait a while and try again.',
+    loginFailed: 'Could not log in. Try again.',
 
     // Profile setup
     profileTitle: 'Set up your profile',
@@ -162,6 +166,10 @@ const translations = {
     testHint: 'టెస్ట్: 9876543210 · కోడ్: 123456',
     invalidPhone: '10 అంకెల నంబర్ వేయండి.',
     invalidOtp: '6 అంకెల కోడ్ వేయండి.',
+    wrongOtp: 'కోడ్ తప్పు. మళ్ళీ వేయండి.',
+    otpExpired: 'కోడ్ గడువు అయిపోయింది. కొత్త కోడ్ పంపండి.',
+    tooManyAttempts: 'చాలా సార్లు ప్రయత్నించారు. కాసేపు ఆగి మళ్ళీ చూడండి.',
+    loginFailed: 'లాగిన్ కాలేదు. మళ్ళీ ప్రయత్నించండి.',
 
     // Profile setup
     profileTitle: 'మీ వివరాలు నమోదు చేయండి',

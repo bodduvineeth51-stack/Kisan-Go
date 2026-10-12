@@ -29,9 +29,52 @@ declare module 'https://esm.sh/@supabase/supabase-js@2' {
     single(): SupabaseQuery
   }
 
-  export interface SupabaseClient {
-    from(table: string): SupabaseQuery
+  export interface AuthError {
+    code?: string
+    message: string
   }
 
-  export function createClient(url: string, key: string): SupabaseClient
+  export interface AuthAdmin {
+    createUser(
+      attrs: Record<string, unknown>,
+    ): Promise<{ data: unknown; error: AuthError | null }>
+    updateUserById(
+      id: string,
+      attrs: Record<string, unknown>,
+    ): Promise<{ data: unknown; error: AuthError | null }>
+    listUsers(params: {
+      page: number
+      perPage: number
+    }): Promise<{
+      data: { users: { id: string; phone?: string }[] }
+      error: AuthError | null
+    }>
+    generateLink(params: {
+      type: string
+      email: string
+    }): Promise<{
+      data: { properties: { hashed_token: string; verification_type: string } }
+      error: AuthError | null
+    }>
+  }
+
+  export interface SupabaseClient {
+    from(table: string): SupabaseQuery
+    auth: { admin: AuthAdmin }
+  }
+
+  export function createClient(
+    url: string,
+    key: string,
+    options?: Record<string, unknown>,
+  ): SupabaseClient
+}
+
+declare module 'https://esm.sh/jose@5' {
+  export function createRemoteJWKSet(url: URL): unknown
+  export function jwtVerify(
+    token: string,
+    keys: unknown,
+    options: { issuer: string; audience: string },
+  ): Promise<{ payload: Record<string, unknown> }>
 }

@@ -55,8 +55,12 @@ logged-in owner's id. Owner A must never see Owner B's data.
   .gitignore.
 - WhatsApp API tokens live in Supabase edge function secrets, never
   in frontend code.
-- For demo login, Supabase test phone numbers with fixed OTP codes
-  are configured in the dashboard (no real SMS needed).
+- Login SMS is sent by Firebase Phone Auth, not Supabase. The Firebase
+  web config is in .env (VITE_FIREBASE_API_KEY, _AUTH_DOMAIN,
+  _PROJECT_ID, _APP_ID). The `firebase-login` edge function needs the
+  secret FIREBASE_PROJECT_ID.
+- For demo login, add test phone numbers with fixed codes in the
+  Firebase console (Authentication → Sign-in method → Phone).
 
 ## Build progress
 
@@ -67,7 +71,8 @@ Files: `src/lib/supabaseClient.js`, `src/pages/Login.jsx`, `src/pages/ProfileSet
 - `owners` table lives in `public` schema; primary key `id` is the Supabase auth UID (uuid), so no separate join needed — `auth.uid() = id` is the RLS check.
 - Vehicle types and rates are stored together as a single `vehicle_rates jsonb` column — an array of `{type: string, hourly_rate: number}` objects. CLAUDE.md's data model shows `vehicles` and `rates` as separate columns; ignore that — the code and table both use `vehicle_rates`.
 - RLS policy name is `owners_self`, covers all operations (SELECT / INSERT / UPDATE / DELETE).
-- Test credentials configured in Supabase dashboard: phone `+919876543210`, OTP `123456` (no real SMS needed).
+- Login flow: Firebase sends and checks the SMS code (`src/lib/firebaseClient.js`), then `supabase/functions/firebase-login` verifies the Firebase ID token and returns a one-time token hash that `Login.jsx` redeems with `supabase.auth.verifyOtp`. The session is a normal Supabase session, so `auth.uid()` and all RLS policies are unchanged. Each phone maps to a Supabase user with stand-in email `<digits>@phone.kisango.invalid`.
+- `firebase-login` must be deployed with `--no-verify-jwt` (it is called before login).
 - Supabase anon key format is `sb_publishable_…` (new Supabase key format) — this is correct, not a truncated key.
 - App routing in `App.jsx`: `session === undefined` → loading, `session === null` → Login, `owner === null` → ProfileSetup, owner present → Dashboard stub.
 
