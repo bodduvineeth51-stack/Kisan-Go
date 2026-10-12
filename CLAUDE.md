@@ -194,6 +194,10 @@ Files changed: `index.html`, `public/favicon.svg`, `src/index.css`, `src/App.jsx
 - Env vars `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` must be set in Vercel dashboard — `.env` is never committed.
 
 ## Rules
+- All UI must follow `kisan-design/DESIGN.md` (colours, fonts, spacing,
+  shapes, icons) and match the reference screens in `kisan-design/screens/`.
+  Use the theme tokens in `src/index.css` (`bg-primary`, `text-muted`, …),
+  not raw Tailwind greys/greens.
 - App display name is "Kisan Go" — use it in the UI header, login
   screen, and as the WhatsApp message signature ("— Sent via Kisan Go")
 - Mobile-first UI: big touch targets, high contrast (used outdoors in

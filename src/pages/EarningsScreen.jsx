@@ -97,7 +97,7 @@ export default function EarningsScreen({ owner, onSignOut, activeTab, onTabChang
   }, [customers, workRecords])
 
   return (
-    <div className="flex min-h-svh flex-col bg-gray-50 pb-16">
+    <div className="flex min-h-svh flex-col pb-24">
       {/* Header */}
       <header className="bg-green-600 px-4 py-3 text-white">
         <div className="flex items-center justify-between">

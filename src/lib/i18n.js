@@ -92,9 +92,28 @@ const translations = {
     pendingCollections: 'Pending Collections ({n})',
     allPaidMsg: 'All customers are paid up!',
 
+    // Home
+    namaste: 'Namaste, {name}',
+    todaysEarnings: "Today's earnings",
+    jobsCount: '{n} jobs',
+    jobCount: '{n} job',
+    toCollectFrom: 'to collect from {n}',
+    tileAddCustomer: 'Add customer',
+    tileGotPayment: 'Got payment',
+    tileSendReminders: 'Send reminders',
+    todaysJobs: "Today's jobs",
+    seeAll: 'See all',
+    billSent: 'Bill sent',
+    billNotSent: 'Not sent',
+    noJobsToday: 'No jobs yet today.',
+    changeLanguage: 'Change language',
+
     // BottomNav
+    homeTab: 'Home',
     customersTab: 'Customers',
-    earningsTab: 'Earnings',
+    earningsTab: 'Money',
+    moreTab: 'More',
+    add: 'Add',
 
     // VoiceEntry
     voiceEntryTitle: 'Voice Entry',
@@ -214,9 +233,28 @@ const translations = {
     pendingCollections: 'వసూలు బాకీ ({n})',
     allPaidMsg: 'అందరూ చెల్లించారు!',
 
+    // Home
+    namaste: 'నమస్తే, {name}',
+    todaysEarnings: 'ఈరోజు సంపాదన',
+    jobsCount: '{n} పనులు',
+    jobCount: '{n} పని',
+    toCollectFrom: '{n} మంది నుండి రావాలి',
+    tileAddCustomer: 'కస్టమర్ జోడించు',
+    tileGotPayment: 'డబ్బు వచ్చింది',
+    tileSendReminders: 'గుర్తు చేయండి',
+    todaysJobs: 'ఈరోజు పనులు',
+    seeAll: 'అన్నీ చూడండి',
+    billSent: 'బిల్లు పంపారు',
+    billNotSent: 'పంపలేదు',
+    noJobsToday: 'ఈరోజు ఇంకా పనులు లేవు.',
+    changeLanguage: 'భాష మార్చు',
+
     // BottomNav
+    homeTab: 'హోమ్',
     customersTab: 'కస్టమర్లు',
-    earningsTab: 'సంపాదన',
+    earningsTab: 'డబ్బు',
+    moreTab: 'ఇంకా',
+    add: 'జోడించు',
 
     // VoiceEntry
     voiceEntryTitle: 'గొంతు ఇన్‌పుట్',

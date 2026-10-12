@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import CustomerCard from '../components/CustomerCard'
 import BottomNav from '../components/BottomNav'
+import AddButton from '../components/AddButton'
 import { useTrans, LangToggle } from '../context/LangContext'
 
 export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onTabChange }) {
@@ -92,7 +93,7 @@ export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onT
   const unpaidCount = customers.filter((c) => !c.is_paid).length
 
   return (
-    <div className="flex min-h-svh flex-col bg-gray-50 pb-16">
+    <div className="flex min-h-svh flex-col pb-24">
       {/* Header */}
       <header className="bg-green-600 px-4 py-3 text-white">
         <div className="flex items-center justify-between">
@@ -117,7 +118,7 @@ export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onT
         )}
       </header>
 
-      <div className="mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-32">
+      <div className="mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-44">
         <input
           type="search"
           placeholder={t('searchPlaceholder')}
@@ -174,17 +175,7 @@ export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onT
         </div>
       </div>
 
-      {/* Add button — fixed above the tab bar */}
-      <div className="fixed bottom-16 left-0 right-0 z-30 px-4 pb-3 pt-2">
-        <div className="mx-auto max-w-lg">
-          <button
-            onClick={openAdd}
-            className="w-full rounded-2xl bg-green-600 py-4 text-base font-semibold text-white shadow-lg transition-transform active:scale-95 hover:bg-green-700"
-          >
-            {t('addCustomer')}
-          </button>
-        </div>
-      </div>
+      <AddButton onClick={openAdd} ariaLabel={t('addCustomer')} />
 
       {showForm && (
         <CustomerForm
@@ -207,7 +198,7 @@ export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onT
   )
 }
 
-function CustomerForm({ editing, ownerId, onClose, onSaved }) {
+export function CustomerForm({ editing, ownerId, onClose, onSaved }) {
   const { t } = useTrans()
   const [name, setName] = useState(editing?.name ?? '')
   const [phone, setPhone] = useState(editing?.phone ?? '')

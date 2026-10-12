@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kisan Go Money</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Noto+Sans+Telugu:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#15803D}a:hover{color:#166534}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F2FAF4; color: #0F2A1A; font-family: 'Plus Jakarta Sans', 'Noto Sans Telugu', sans-serif; line-height: 1.3; display: flex; flex-direction: column; overflow: hidden">
+<div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 14px; overflow: hidden">
+
+<div style="display: flex; align-items: center; justify-content: space-between; height: 44px">
+<h1 style="margin: 0; font-weight: 800; font-size: 28px; letter-spacing: -0.8px">Money</h1>
+<span style="padding: 5px 12px; border-radius: 12px; background: #DCFCE7; font-size: 13px; font-weight: 800; color: #15803D">Kharif 2026</span>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 5px; border-radius: 18px; background: #FFFFFF; box-shadow: 0 4px 14px rgba(15,42,26,0.06)">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+<button onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="{{t.style}}">{{t.label}}</button>
+</sc-for>
+</div>
+
+<div style="position: relative; overflow: hidden; background: #15803D; color: #FFFFFF; border-radius: 26px; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 10px 24px rgba(21,128,61,0.28)">
+<div style="position: absolute; right: -50px; top: -60px; width: 180px; height: 180px; border-radius: 50%; background: #22C55E; opacity: 0.45"></div>
+<div style="position: relative">
+<div style="font-size: 14px; font-weight: 600; color: #DCFCE7">Total earned</div>
+<div style="font-weight: 800; font-size: 42px; letter-spacing: -1.5px; line-height: 1.05">{{earned}}</div>
+</div>
+<div style="position: relative; height: 12px; border-radius: 6px; background: #FDBA74; overflow: hidden">
+<div style="width: {{paidPct}}; height: 100%; background: #BEF264; border-radius: 6px"></div>
+</div>
+<div style="position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<div style="padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,0.14)">
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #DCFCE7"><span style="width: 10px; height: 10px; border-radius: 3px; background: #BEF264"></span>Collected</div>
+<div style="font-size: 20px; font-weight: 800">{{collected}}</div>
+</div>
+<div style="padding: 10px 12px; border-radius: 16px; background: #FFFFFF; color: #C2410C">
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700"><span style="width: 10px; height: 10px; border-radius: 3px; background: #FDBA74"></span>To collect</div>
+<div style="font-size: 20px; font-weight: 800">{{pending}}</div>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<h2 style="margin: 0; font-size: 17px; font-weight: 800">Who owes the most</h2>
+<button style="height: 36px; padding: 0 12px; border-radius: 12px; border: 0; background: #E0F2FE; color: #075985; font-family: inherit; font-size: 13px; font-weight: 800">Remind all</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{owers}}" as="o" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 18px; background: #FFFFFF; box-shadow: 0 4px 14px rgba(15,42,26,0.06)">
+<a href="Customer.dc.html" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; text-decoration: none; color: #0F2A1A">
+<span style="{{o.avatarStyle}}">{{o.initials}}</span>
+<span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{o.name}}</span><span style="display: block; font-size: 12px; font-weight: 600; color: #4B6355">{{o.days}}</span></span>
+<span style="font-size: 15px; font-weight: 800; color: #C2410C">{{o.amount}}</span>
+</a>
+<button aria-label="{{o.remindLabel}}" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; border: 0; background: #DCFCE7; color: #15803D; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"></path></svg></button>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<nav aria-label="Main" style="flex-shrink: 0; margin: 0 12px 12px; height: 68px; box-sizing: border-box; background: #FFFFFF; border-radius: 24px; box-shadow: 0 6px 24px rgba(15,42,26,0.12); display: flex; gap: 4px; padding: 8px">
+<a href="Main.dc.html" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 16px; text-decoration: none; color: #4B6355; font-size: 12px; font-weight: 600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Home</a>
+<a href="Customers.dc.html" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 16px; text-decoration: none; color: #4B6355; font-size: 12px; font-weight: 600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.9.7 3 2.5 3.5 5.2"></path></svg>Customers</a>
+<a href="Money.dc.html" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 16px; background: #DCFCE7; text-decoration: none; color: #15803D; font-size: 12px; font-weight: 800"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5"></rect><path d="M3 10h18"></path><circle cx="16.5" cy="14.5" r="1.2"></circle></svg>Money</a>
+<a href="Main.dc.html" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 16px; text-decoration: none; color: #4B6355; font-size: 12px; font-weight: 600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>More</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { period: 'season' };
+}
+renderVals() {
+const data = {
+today: { earned: 10133, collected: 1800 },
+week: { earned: 42600, collected: 30100 },
+season: { earned: 235000, collected: 186400 }
+};
+const rs = (n) => '₹' + n.toLocaleString('en-IN');
+const p = this.state.period;
+const d = data[p];
+const base = 'height: 44px; border-radius: 14px; border: 0; font-family: inherit; font-size: 14px; cursor: pointer; ';
+const tabs = [['today', 'Today'], ['week', 'This week'], ['season', 'Season']].map(([id, label]) => ({
+label: label,
+pressed: p === id ? 'true' : 'false',
+style: p === id ? base + 'background: #15803D; color: #FFFFFF; font-weight: 800' : base + 'background: transparent; color: #4B6355; font-weight: 600',
+pick: () => this.setState({ period: id })
+}));
+const tints = [['#BBF7D0', '#166534'], ['#FCE7F3', '#9D174D'], ['#E0F2FE', '#075985'], ['#FEF3C7', '#92400E']];
+const owers = [
+{ name: 'Ramulu', initials: 'RA', amount: 6250, days: 'Waiting 12 days' },
+{ name: 'Lakshmamma', initials: 'LA', amount: 4800, days: 'Waiting 9 days' },
+{ name: 'Narsimha', initials: 'NA', amount: 3900, days: 'Waiting 20 days' },
+{ name: 'Anjaiah', initials: 'AN', amount: 2500, days: 'Waiting 6 days' }
+].map((o, i) => ({
+...o,
+amount: rs(o.amount),
+remindLabel: 'Remind ' + o.name + ' on WhatsApp',
+avatarStyle: 'width: 40px; height: 40px; flex-shrink: 0; border-radius: 13px; background: ' + tints[i][0] + '; color: ' + tints[i][1] + '; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center'
+}));
+return {
+tabs: tabs,
+earned: rs(d.earned),
+collected: rs(d.collected),
+pending: rs(d.earned - d.collected),
+paidPct: Math.round((d.collected / d.earned) * 100) + '%',
+owers: owers
+};
+}
+}
+</script>
+</body>
+</html>

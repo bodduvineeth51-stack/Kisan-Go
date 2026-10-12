@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient'
 import Login from './pages/Login'
 import ProfileSetup from './pages/ProfileSetup'
+import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
 import EarningsScreen from './pages/EarningsScreen'
 import TimerScreen from './pages/TimerScreen'
@@ -67,7 +68,7 @@ export default function App() {
   const [session, setSession] = useState(undefined) // undefined = loading, null = signed out
   const [owner, setOwner] = useState(undefined)
   const [activeJob, setActiveJob] = useState(null)  // { customer } | null
-  const [activeTab, setActiveTab] = useState('customers') // 'customers' | 'earnings'
+  const [activeTab, setActiveTab] = useState('home') // 'home' | 'customers' | 'earnings'
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -124,10 +125,11 @@ export default function App() {
   }
   return (
     <>
-      {activeTab === 'earnings'
-        ? <EarningsScreen {...sharedProps} />
-        : <Dashboard {...sharedProps} onStartJob={(customer) => setActiveJob({ customer })} />
-      }
+      {activeTab === 'home' && <Home {...sharedProps} />}
+      {activeTab === 'earnings' && <EarningsScreen {...sharedProps} />}
+      {activeTab === 'customers' && (
+        <Dashboard {...sharedProps} onStartJob={(customer) => setActiveJob({ customer })} />
+      )}
       <InstallBanner />
     </>
   )

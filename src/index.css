@@ -1,5 +1,49 @@
 @import "tailwindcss";
 
+/* Design tokens — source of truth is kisan-design/DESIGN.md.
+   Tailwind v4 reads these instead of a tailwind.config.js:
+   --color-primary → bg-primary, text-primary, border-primary, … */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', 'Noto Sans Telugu', sans-serif;
+
+  --color-bg: #F2FAF4;
+  --color-surface: #FFFFFF;
+  --color-ink: #0F2A1A;
+  --color-muted: #4B6355;
+  --color-primary: #15803D;
+  --color-primary-bright: #16A34A;
+  --color-mint-50: #F0FDF4;
+  --color-mint-100: #DCFCE7;
+  --color-mint-200: #BBF7D0;
+  --color-circle-1: #22C55E;
+  --color-circle-2: #4ADE80;
+  --color-lime: #BEF264;
+  --color-due: #C2410C;
+  --color-due-bg: #FFEDD5;
+  --color-due-bar: #FDBA74;
+  --color-amber: #B45309;
+  --color-amber-bg: #FEF3C7;
+  --color-blue: #0369A1;
+  --color-blue-bg: #E0F2FE;
+  --color-danger: #DC2626;
+  --color-border: #E2EDE5;
+  --color-divider: #EEF5F0;
+
+  --shadow-card: 0 4px 14px rgba(15, 42, 26, 0.06);
+  --shadow-green: 0 10px 22px rgba(21, 128, 61, 0.3);
+  --shadow-fab: 0 12px 26px rgba(21, 128, 61, 0.4);
+  --shadow-nav: 0 6px 24px rgba(15, 42, 26, 0.12);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.3;
+  }
+}
+
 html,
 body {
   margin: 0;
