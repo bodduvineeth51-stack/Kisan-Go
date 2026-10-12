@@ -198,6 +198,8 @@ export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onT
   )
 }
 
+const CUSTOMER_NAME_MAX = 20
+
 export function CustomerForm({ editing, ownerId, onClose, onSaved }) {
   const { t } = useTrans()
   const [name, setName] = useState(editing?.name ?? '')
@@ -256,7 +258,8 @@ export function CustomerForm({ editing, ownerId, onClose, onSaved }) {
             type="text"
             placeholder={t('customerNameLabel')}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            maxLength={CUSTOMER_NAME_MAX}
+            onChange={(e) => setName(e.target.value.slice(0, CUSTOMER_NAME_MAX))}
             autoFocus
             className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600"
           />
