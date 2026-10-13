@@ -1,23 +1,26 @@
+import { MessageCircle } from 'lucide-react'
 import { useTrans } from '../context/LangContext'
+import { billLink } from '../lib/whatsapp'
 
 function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
-function WhatsAppStatus({ record, onRetry, t }) {
+function WhatsAppStatus({ record, customer, onSent, t, lang }) {
   if (record.whatsapp_status === 'sent') {
     return <span className="text-xs font-medium text-green-600">{t('whatsappSent')}</span>
   }
-  if (record.whatsapp_status === 'sending') {
-    return <span className="text-xs text-gray-400">{t('whatsappSending')}</span>
-  }
   return (
-    <button
-      onClick={() => onRetry(record)}
-      className="text-xs font-medium text-orange-600 hover:text-orange-700"
+    <a
+      href={billLink(lang, customer, record)}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={() => onSent(record)}
+      className="inline-flex items-center gap-1 py-1.5 text-xs font-medium text-orange-600 hover:text-orange-700"
     >
-      {t('whatsappRetry')}
-    </button>
+      <MessageCircle size={14} strokeWidth={2.2} aria-hidden="true" />
+      {t('sendOnWhatsapp')}
+    </a>
   )
 }
 
@@ -28,9 +31,9 @@ export default function CustomerCard({
   onDelete,
   onEdit,
   onStartJob,
-  onRetryWhatsapp = () => {},
+  onBillSent = () => {},
 }) {
-  const { t } = useTrans()
+  const { t, lang } = useTrans()
   const recentRecords = records.slice(0, 3)
 
   return (
@@ -90,7 +93,7 @@ export default function CustomerCard({
                 </span>
               </div>
               <div className="mt-0.5">
-                <WhatsAppStatus record={r} onRetry={onRetryWhatsapp} t={t} />
+                <WhatsAppStatus record={r} customer={customer} onSent={onBillSent} t={t} lang={lang} />
               </div>
             </div>
           ))}

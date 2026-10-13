@@ -122,6 +122,8 @@ RLS policy `work_records_owner`: `owner_id = auth.uid()` for all ops.
 ### Phase 4 — WhatsApp automation ✅ (complete)
 Files: `supabase/functions/send-whatsapp/index.ts` (edge function), `src/pages/TimerScreen.jsx` (calls function post-submit), `src/pages/Dashboard.jsx` (retry handler), `src/components/CustomerCard.jsx` (status + retry UI)
 
+**Current behaviour (Oct 2026):** bills are sent from the owner's own WhatsApp, not by the edge function. After a job is saved, `src/components/BillReady.jsx` shows the bill and a "Send on WhatsApp" link (`src/lib/whatsapp.js` builds the `wa.me` link with the message pre-filled); the customer card shows the same link for unsent bills. `whatsapp_status` becomes `'sent'` when the owner opens the chat — the app cannot confirm the message was actually sent. The `send-whatsapp` edge function below is still deployed but no longer called by the app; it is kept for a later move to an automatic business sender.
+
 **Provider:** Twilio WhatsApp sandbox (free-form `Body`, no content templates needed within 24h session window)
 
 **Secrets stored in Supabase (never in frontend):**

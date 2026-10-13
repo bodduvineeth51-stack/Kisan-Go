@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import VoiceEntry from '../components/VoiceEntry'
+import BillReady from '../components/BillReady'
 import { useTrans } from '../context/LangContext'
 
 function localDatetimeValue(date = new Date()) {
@@ -41,7 +42,7 @@ function calcTotals(sessions) {
 }
 
 export default function TimerScreen({ customer, owner, onComplete, onBack }) {
-  const { t, lang } = useTrans()
+  const { t } = useTrans()
   const autoVehicle = owner.vehicle_rates.length === 1 ? owner.vehicle_rates[0] : null
   const [vehicle, setVehicle] = useState(autoVehicle)
   const [sessions, setSessions] = useState([])
@@ -53,6 +54,7 @@ export default function TimerScreen({ customer, owner, onComplete, onBack }) {
   const [manualStop, setManualStop] = useState('')
   const [manualError, setManualError] = useState('')
   const [submitPhase, setSubmitPhase] = useState(null)
+  const [savedRecord, setSavedRecord] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -133,30 +135,33 @@ export default function TimerScreen({ customer, owner, onComplete, onBack }) {
 
     if (error) { setError(error.message); setSubmitPhase(null); return }
 
-    setSubmitPhase('sending')
-    try {
-      await supabase.functions.invoke('send-whatsapp', {
-        body: {
-          record_id: data.id,
-          customer_phone: customer.phone,
-          customer_name: customer.name,
-          vehicle_type: vehicle.type,
-          total_hours: roundedHours,
-          hourly_rate: vehicle.hourly_rate,
-          amount,
-          lang,
-        },
-      })
-    } catch {
-      // WhatsApp failed — record is saved; user can retry from the dashboard
-    }
+    setSavedRecord(data)
+  }
 
-    onComplete(data)
+  // The bill counts as sent once the owner opens the WhatsApp chat
+  function handleBillSent(record) {
+    setSavedRecord({ ...record, whatsapp_status: 'sent' })
+    supabase
+      .from('work_records')
+      .update({ whatsapp_status: 'sent' })
+      .eq('id', record.id)
+      .then(({ error }) => { if (error) console.error('[bill] status update failed:', error) })
   }
 
   const { totalMins, totalHours } = calcTotals(sessions)
   const isRecording = activeStart !== null
   const canSubmit = sessions.length > 0 && !isRecording && vehicle && submitPhase === null
+
+  if (savedRecord) {
+    return (
+      <BillReady
+        customer={customer}
+        record={savedRecord}
+        onSent={handleBillSent}
+        onDone={() => onComplete(savedRecord)}
+      />
+    )
+  }
 
   return (
     <div className="flex min-h-svh flex-col bg-gray-50">
@@ -357,11 +362,7 @@ export default function TimerScreen({ customer, owner, onComplete, onBack }) {
               disabled={submitPhase !== null}
               className="w-full rounded-2xl bg-green-600 py-5 text-lg font-extrabold text-white shadow-md transition-transform active:scale-95 disabled:opacity-60 hover:bg-green-700"
             >
-              {submitPhase === 'saving'
-                ? t('savingLabel')
-                : submitPhase === 'sending'
-                  ? t('sendingWaLabel')
-                  : t('submitJob')}
+              {submitPhase === 'saving' ? t('savingLabel') : t('submitJob')}
             </button>
           </div>
         )}

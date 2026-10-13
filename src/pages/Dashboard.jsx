@@ -6,7 +6,7 @@ import AddButton from '../components/AddButton'
 import { useTrans, LangToggle } from '../context/LangContext'
 
 export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onTabChange }) {
-  const { t, lang } = useTrans()
+  const { t } = useTrans()
   const [customers, setCustomers] = useState([])
   const [workRecords, setWorkRecords] = useState([])
   const [loading, setLoading] = useState(true)
@@ -63,28 +63,21 @@ export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onT
     if (error) { fetchAll(); setError(error.message) }
   }
 
-  async function handleRetryWhatsapp(record) {
-    const customer = customers.find((c) => c.id === record.customer_id)
-    if (!customer) return
+  // The bill counts as sent once the owner opens the WhatsApp chat
+  async function handleBillSent(record) {
     setWorkRecords((prev) =>
-      prev.map((r) => r.id === record.id ? { ...r, whatsapp_status: 'sending' } : r),
+      prev.map((r) => r.id === record.id ? { ...r, whatsapp_status: 'sent' } : r),
     )
-    const { data } = await supabase.functions.invoke('send-whatsapp', {
-      body: {
-        record_id: record.id,
-        customer_phone: customer.phone,
-        customer_name: customer.name,
-        vehicle_type: record.vehicle_type,
-        total_hours: record.total_hours,
-        hourly_rate: record.hourly_rate,
-        amount: record.amount,
-        lang,
-      },
-    })
-    const newStatus = data?.whatsapp_status ?? 'failed'
-    setWorkRecords((prev) =>
-      prev.map((r) => r.id === record.id ? { ...r, whatsapp_status: newStatus } : r),
-    )
+    const { error } = await supabase
+      .from('work_records')
+      .update({ whatsapp_status: 'sent' })
+      .eq('id', record.id)
+    if (error) {
+      setWorkRecords((prev) =>
+        prev.map((r) => r.id === record.id ? { ...r, whatsapp_status: record.whatsapp_status } : r),
+      )
+      setError(error.message)
+    }
   }
 
   function openAdd() { setEditing(null); setShowForm(true) }
@@ -169,7 +162,7 @@ export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onT
               onDelete={() => handleDelete(c)}
               onEdit={() => openEdit(c)}
               onStartJob={() => onStartJob(c)}
-              onRetryWhatsapp={(record) => handleRetryWhatsapp(record)}
+              onBillSent={handleBillSent}
             />
           ))}
         </div>
