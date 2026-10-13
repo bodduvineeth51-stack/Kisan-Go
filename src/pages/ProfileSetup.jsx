@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { useTrans, LangToggle } from '../context/LangContext'
 
@@ -7,7 +8,7 @@ const VEHICLE_TYPES = [
   'Cultivator', 'Seed Drill', 'Sprayer', 'Thresher',
 ]
 
-export default function ProfileSetup({ user, onComplete }) {
+export default function ProfileSetup({ user, onComplete, onBack }) {
   const { t } = useTrans()
   const [name, setName] = useState('')
   const [selectedTypes, setSelectedTypes] = useState([])
@@ -45,6 +46,14 @@ export default function ProfileSetup({ user, onComplete }) {
   return (
     <div className="flex min-h-svh items-center justify-center bg-gray-50 px-4 py-10">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm">
+        <button
+          type="button"
+          onClick={onBack}
+          className="-ml-2 mb-3 flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft size={18} strokeWidth={2.2} aria-hidden="true" />
+          {t('changePhone')}
+        </button>
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{t('profileTitle')}</h1>

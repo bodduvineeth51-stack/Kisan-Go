@@ -104,6 +104,7 @@ export default function App() {
       <ProfileSetup
         user={session.user}
         onComplete={() => fetchOwner(session.user.id)}
+        onBack={() => supabase.auth.signOut()}
       />
     )
   }
