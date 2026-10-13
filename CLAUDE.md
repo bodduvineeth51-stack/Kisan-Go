@@ -130,6 +130,7 @@ Files: `supabase/functions/send-whatsapp/index.ts` (edge function), `src/pages/T
 - `TWILIO_ACCOUNT_SID` — Twilio account SID (ACxxx…)
 - `TWILIO_AUTH_TOKEN` — Twilio auth token
 - `TWILIO_WHATSAPP_FROM` — optional override; defaults to `whatsapp:+14155238886` (sandbox)
+- `TWILIO_WHATSAPP_TEMPLATE_EN` / `TWILIO_WHATSAPP_TEMPLATE_TE` — optional Twilio Content SIDs (HX…) of the approved bill templates. When set for the message language, the function sends the template with variables 1–5 (name, vehicle, hours, rate, amount); when unset it sends free-form text, which only the sandbox allows.
 - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are auto-injected by Supabase into every edge function — do NOT set these manually
 
 **Implementation notes:**

@@ -32,6 +32,19 @@ function buildMessage(
   )
 }
 
+// A registered WhatsApp Business sender may only start a conversation with a
+// Meta-approved template. When a template Content SID is configured for the
+// language, send that with its variables; otherwise fall back to free-form
+// text, which works in the Twilio sandbox.
+//
+// Template variables: {{1}} name, {{2}} vehicle, {{3}} hours, {{4}} rate,
+// {{5}} amount — the same order as buildMessage().
+function templateSid(lang: string): string | undefined {
+  return lang === 'te'
+    ? Deno.env.get('TWILIO_WHATSAPP_TEMPLATE_TE')
+    : Deno.env.get('TWILIO_WHATSAPP_TEMPLATE_EN')
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -58,7 +71,19 @@ Deno.serve(async (req) => {
     }
 
     const hours = Number(total_hours).toFixed(2)
-    const body  = buildMessage(lang, customer_name, vehicle_type, hours, hourly_rate, amount)
+    const contentSid = templateSid(lang)
+    const message: Record<string, string> = contentSid
+      ? {
+          ContentSid: contentSid,
+          ContentVariables: JSON.stringify({
+            1: String(customer_name),
+            2: String(vehicle_type),
+            3: hours,
+            4: String(hourly_rate),
+            5: String(amount),
+          }),
+        }
+      : { Body: buildMessage(lang, customer_name, vehicle_type, hours, hourly_rate, amount) }
 
     const twilioUrl =
       `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
@@ -72,7 +97,7 @@ Deno.serve(async (req) => {
       body: new URLSearchParams({
         From: fromNumber,
         To:   `whatsapp:+91${customer_phone}`,
-        Body: body,
+        ...message,
       }).toString(),
     })
 
