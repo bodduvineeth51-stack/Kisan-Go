@@ -199,6 +199,17 @@ Files changed: `index.html`, `public/favicon.svg`, `src/index.css`, `src/App.jsx
 - Vercel auto-detects Vite; build command `npm run build`, output dir `dist`.
 - Env vars `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` must be set in Vercel dashboard — `.env` is never committed.
 
+### Phase 9 — Android app (Capacitor) 🚧 (set up, not yet built on a device)
+Files: `capacitor.config.json` (new), `android/` (generated native project), `src/main.jsx`, `vite.config.js`, `src/components/VoiceEntry.jsx`, `package.json`
+
+**Implementation notes:**
+- Same React code runs in the Android WebView; app id `com.kisango.app`, served from `https://localhost`.
+- `npm run android:sync` = `vite build` + `cap sync android` — run after every web change, then build in Android Studio (`npm run android:open`).
+- PWA service worker is registered from `main.jsx` only when NOT `Capacitor.isNativePlatform()` (`injectRegister: false` in vite config).
+- Voice entry: Android WebView has no Web Speech API, so on native `VoiceEntry` uses `@capacitor-community/speech-recognition` (`partialResults: false` → no live interim text on native). Web path unchanged.
+- Firebase phone login still uses the web reCAPTCHA flow; `localhost` must be in Firebase → Authentication → Settings → Authorized domains.
+- iOS not added yet (needs full Xcode + CocoaPods; Firebase web reCAPTCHA won't work under iOS's `capacitor://` scheme — would need native Firebase auth).
+
 ## Rules
 - All UI must follow `kisan-design/DESIGN.md` (colours, fonts, spacing,
   shapes, icons) and match the reference screens in `kisan-design/screens/`.

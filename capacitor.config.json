@@ -1,0 +1,8 @@
+{
+  "appId": "com.kisango.app",
+  "appName": "Kisan Go",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#16a34a"
+  }
+}

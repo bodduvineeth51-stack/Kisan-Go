@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { SpeechRecognition } from '@capacitor-community/speech-recognition'
 import { parseTranscript } from '../lib/voiceParser'
 import { useTrans } from '../context/LangContext'
+
+const isNative = Capacitor.isNativePlatform()
 
 function isoToTimeStr(iso) {
   if (!iso) return ''
@@ -10,7 +14,7 @@ function isoToTimeStr(iso) {
 
 export default function VoiceEntry({ customer, vehicleTypes, onConfirm, onClose }) {
   const { t, lang: appLang } = useTrans()
-  const supported = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
+  const supported = isNative || !!(window.SpeechRecognition || window.webkitSpeechRecognition)
   // speechLang is for the mic — defaults to match the app display language
   const [speechLang, setSpeechLang] = useState(appLang === 'te' ? 'te-IN' : 'en-IN')
   const [phase, setPhase]           = useState('idle')
@@ -24,7 +28,44 @@ export default function VoiceEntry({ customer, vehicleTypes, onConfirm, onClose 
   const recRef   = useRef(null)
   const gotFinal = useRef(false)
 
-  useEffect(() => () => recRef.current?.abort(), [])
+  useEffect(() => () => {
+    recRef.current?.abort()
+    if (isNative) SpeechRecognition.stop().catch(() => {})
+  }, [])
+
+  function handleFinal(text) {
+    gotFinal.current = true
+    setHeardText(text)
+    setInterim('')
+    const result = parseTranscript(text, [customer], vehicleTypes)
+    setParsed(result)
+    setConfirmVehicle(result.vehicle ?? vehicleTypes[0] ?? null)
+    setStartTime(isoToTimeStr(result.start))
+    setStopTime(isoToTimeStr(result.stop))
+    setPhase('done')
+  }
+
+  // The Android app's WebView has no Web Speech API, so the app uses the
+  // phone's own speech recognizer through a Capacitor plugin instead.
+  async function startNativeListening() {
+    try {
+      const { speechRecognition } = await SpeechRecognition.requestPermissions()
+      if (speechRecognition !== 'granted') { setMicError(t('micPermDenied')); return }
+      setPhase('listening')
+      const { matches } = await SpeechRecognition.start({
+        language: speechLang,
+        maxResults: 1,
+        partialResults: false,
+        popup: false,
+      })
+      const text = matches?.[0]?.trim()
+      if (text) handleFinal(text)
+      else { setPhase('idle'); setMicError(t('noSpeechErr')) }
+    } catch (err) {
+      setPhase('idle')
+      setMicError(t('micErr', { code: err?.message ?? 'unknown' }))
+    }
+  }
 
   function startListening() {
     setMicError('')
@@ -32,6 +73,8 @@ export default function VoiceEntry({ customer, vehicleTypes, onConfirm, onClose 
     setInterim('')
     setParsed(null)
     gotFinal.current = false
+
+    if (isNative) { startNativeListening(); return }
 
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     const rec = new SR()
@@ -50,18 +93,7 @@ export default function VoiceEntry({ customer, vehicleTypes, onConfirm, onClose 
         else                       interimAcc += e.results[i][0].transcript
       }
       if (interimAcc) setInterim(interimAcc)
-      if (finalAcc.trim()) {
-        const text = finalAcc.trim()
-        gotFinal.current = true
-        setHeardText(text)
-        setInterim('')
-        const result = parseTranscript(text, [customer], vehicleTypes)
-        setParsed(result)
-        setConfirmVehicle(result.vehicle ?? vehicleTypes[0] ?? null)
-        setStartTime(isoToTimeStr(result.start))
-        setStopTime(isoToTimeStr(result.stop))
-        setPhase('done')
-      }
+      if (finalAcc.trim()) handleFinal(finalAcc.trim())
     }
 
     rec.onerror = (e) => {
@@ -83,7 +115,10 @@ export default function VoiceEntry({ customer, vehicleTypes, onConfirm, onClose 
     }
   }
 
-  function stopListening() { recRef.current?.stop() }
+  function stopListening() {
+    if (isNative) SpeechRecognition.stop().catch(() => {})
+    else recRef.current?.stop()
+  }
 
   const timeValid = (() => {
     if (!startTime || !stopTime) return false
