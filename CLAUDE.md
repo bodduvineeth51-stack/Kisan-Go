@@ -62,6 +62,13 @@ logged-in owner's id. Owner A must never see Owner B's data.
 - For demo login, add test phone numbers with fixed codes in the
   Firebase console (Authentication → Sign-in method → Phone).
 
+- Keep-alive: the Supabase free plan pauses a project after about a week
+  with no activity. `api/keepalive.js` is a Vercel cron job (`vercel.json`,
+  daily at 02:30 UTC = 8:00 AM IST) that makes one anon read of `owners` on
+  the project the deployment uses. Set `KEEPALIVE_DEV_URL` and
+  `KEEPALIVE_DEV_ANON_KEY` in Vercel to also ping kisan-go-dev. Cron jobs
+  only run on the production deployment.
+
 ## Build progress
 
 ### Phase 1 — Auth + Owner profile ✅ (complete)
