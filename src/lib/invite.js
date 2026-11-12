@@ -29,3 +29,16 @@ export function readInvitePhone() {
     return null
   }
 }
+
+// Drop the invite number from the address bar once the person is in, so it
+// doesn't come back on the login screen after they log out.
+export function clearInviteParam() {
+  try {
+    const url = new URL(window.location.href)
+    if (!url.searchParams.has(PARAM)) return
+    url.searchParams.delete(PARAM)
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash)
+  } catch {
+    // Address bar can't be changed here; harmless.
+  }
+}

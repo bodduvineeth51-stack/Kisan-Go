@@ -9,6 +9,8 @@ import TimerScreen from './pages/TimerScreen'
 import ManageDrivers from './pages/ManageDrivers'
 import DriverApp from './pages/driver/DriverApp'
 import { loadMyRole } from './lib/roles'
+import { readInvitePhone, clearInviteParam } from './lib/invite'
+import { localDigits, formatPhone } from './lib/phone'
 import { useTrans } from './context/LangContext'
 
 function InstallBanner() {
@@ -96,6 +98,37 @@ function AccessRemoved({ onSignOut }) {
   )
 }
 
+// Someone opened a driver access link and logged in, but the database has no
+// driver access for their number (owner typed a different number, or they
+// logged in with another one). Without this they would land on the owner
+// sign-up form and could register as an owner by mistake.
+function InviteNotFound({ phone, invitedPhone, onRetry, onSignOut, onOwnerSignup }) {
+  const { t } = useTrans()
+  const mismatch = Boolean(phone) && phone !== invitedPhone
+  const primary = 'min-h-14 rounded-2xl bg-primary text-lg font-extrabold text-white shadow-green'
+  const secondary = 'min-h-12 rounded-2xl border border-border text-base font-bold text-ink'
+  const retryBtn = (cls) => <button onClick={onRetry} className={cls}>{t('checkAgain')}</button>
+  const signOutBtn = (cls) => <button onClick={onSignOut} className={cls}>{t('signOut')}</button>
+  return (
+    <CenteredMessage
+      title={t('inviteNotFoundTitle')}
+      body={mismatch
+        ? t('inviteNotFoundMismatch', { invited: formatPhone(invitedPhone), phone: formatPhone(phone) })
+        : t('inviteNotFoundAsk', { phone: formatPhone(invitedPhone) })}
+      actions={
+        <>
+          {/* Wrong number: checking again can't help, logging out can. */}
+          {mismatch ? signOutBtn(primary) : retryBtn(primary)}
+          {mismatch ? retryBtn(secondary) : signOutBtn(secondary)}
+          <button onClick={onOwnerSignup} className="min-h-11 text-sm font-bold text-muted underline">
+            {t('iAmOwner')}
+          </button>
+        </>
+      }
+    />
+  )
+}
+
 function RoleError({ onRetry, onSignOut }) {
   const { t } = useTrans()
   return (
@@ -121,6 +154,7 @@ export default function App() {
   // { role: 'owner', owner } or { role: 'driver', status, … } from get_my_role
   const [me, setMe] = useState(undefined)
   const [accessRemoved, setAccessRemoved] = useState(false)
+  const [ownerSignup, setOwnerSignup] = useState(false) // came by driver link, chose owner sign-up
   const [activeJob, setActiveJob] = useState(null)  // { customer } | null
   const [activeTab, setActiveTab] = useState('home') // 'home' | 'customers' | 'earnings' | 'drivers'
 
@@ -146,8 +180,10 @@ export default function App() {
         const { data, error } = await supabase.from('owners').select('*').eq('id', role.business_id).maybeSingle()
         if (error) throw error
         setMe(data ? { role: 'owner', owner: data } : null)
+        if (data) clearInviteParam()
       } else {
         setMe(role)
+        if (role) clearInviteParam()
       }
     } catch (err) {
       console.error('[app] could not load role:', err)
@@ -161,6 +197,7 @@ export default function App() {
       setMe(null)
       setActiveJob(null)
       setActiveTab('home')
+      setOwnerSignup(false)
       return
     }
     resolveRole()
@@ -186,6 +223,19 @@ export default function App() {
   }
 
   if (me === null) {
+    // Arrived by a driver access link but no driver access was found.
+    const invitedPhone = readInvitePhone()
+    if (invitedPhone && !ownerSignup) {
+      return (
+        <InviteNotFound
+          phone={localDigits(session.user.phone)}
+          invitedPhone={invitedPhone}
+          onRetry={resolveRole}
+          onSignOut={signOut}
+          onOwnerSignup={() => setOwnerSignup(true)}
+        />
+      )
+    }
     return (
       <ProfileSetup
         user={session.user}

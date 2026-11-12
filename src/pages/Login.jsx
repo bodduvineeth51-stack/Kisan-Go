@@ -132,7 +132,7 @@ export default function Login() {
             >
               {loading ? t('sending') : t('sendOtp')}
             </button>
-            <p className="text-center text-xs text-gray-400">{t('testHint')}</p>
+            {!invitedPhone && <p className="text-center text-xs text-gray-400">{t('testHint')}</p>}
           </form>
         )}
 

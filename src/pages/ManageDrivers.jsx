@@ -192,8 +192,8 @@ export default function ManageDrivers({ owner, onSignOut, activeTab, onTabChange
   const [sharing, setSharing] = useState(null) // driver whose access link is being sent
   const [restoringId, setRestoringId] = useState(null)
 
-  async function fetchDrivers() {
-    setLoading(true)
+  async function fetchDrivers({ quiet = false } = {}) {
+    if (!quiet) setLoading(true)
     setError('')
     const { data, error } = await supabase
       .from('memberships')
@@ -208,6 +208,16 @@ export default function ManageDrivers({ owner, onSignOut, activeTab, onTabChange
 
   useEffect(() => { fetchDrivers() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The owner leaves the app to send the link on WhatsApp. When they come
+  // back, refresh quietly so a driver who has logged in shows as Active.
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === 'visible') fetchDrivers({ quiet: true })
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // add_driver on a revoked driver restores them (Phase 2 behaviour).
   async function restore(d) {
     setRestoringId(d.id)
@@ -221,8 +231,8 @@ export default function ManageDrivers({ owner, onSignOut, activeTab, onTabChange
   return (
     <div className="min-h-svh">
       <div className="mx-auto flex w-full max-w-lg flex-col gap-3.5 px-5 pb-44 pt-4">
-        <div className="flex h-11 items-center justify-between">
-          <h1 className="text-[26px] font-extrabold tracking-[-0.8px] text-ink">{t('driversTitle')}</h1>
+        <div className="flex h-11 items-center justify-between gap-3">
+          <h1 className="min-w-0 truncate text-[22px] font-extrabold tracking-[-0.6px] text-ink">{t('driversTitle')}</h1>
           <div className="flex items-center gap-2">
             <LangToggle variant="light" />
             <button onClick={onSignOut} className="min-h-11 px-2 text-sm font-bold text-muted">
@@ -300,7 +310,7 @@ export default function ManageDrivers({ owner, onSignOut, activeTab, onTabChange
       {showAdd && (
         <AddDriverSheet
           onClose={() => setShowAdd(false)}
-          onSaved={(driver) => { setShowAdd(false); setSharing(driver); fetchDrivers() }}
+          onSaved={(driver) => { setShowAdd(false); setSharing(driver); fetchDrivers({ quiet: true }) }}
         />
       )}
       {sharing && (
