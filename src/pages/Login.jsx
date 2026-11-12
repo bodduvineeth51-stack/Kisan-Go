@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { getFirebaseAuth } from '../lib/firebaseClient'
 import { useTrans, LangToggle } from '../context/LangContext'
 import { localDigits, toE164 } from '../lib/phone'
+import { readInvitePhone } from '../lib/invite'
 
 // Firebase error codes worth a plain-language message; anything else falls
 // back to the generic login error.
@@ -18,7 +19,10 @@ const FIREBASE_ERRORS = {
 export default function Login() {
   const { t } = useTrans()
   const [step, setStep] = useState('phone') // 'phone' | 'otp'
-  const [phone, setPhone] = useState('')
+  // Opened from a driver access link (?invite=<number>): number is filled in.
+  // Access still depends on the one-time code, never on the link itself.
+  const [invitedPhone] = useState(readInvitePhone)
+  const [phone, setPhone] = useState(invitedPhone ?? '')
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -97,6 +101,11 @@ export default function Login() {
 
         {step === 'phone' && (
           <form className="mt-6 space-y-4" onSubmit={handleSendOtp}>
+            {invitedPhone && (
+              <p className="rounded-xl bg-mint-100 px-3 py-2.5 text-sm font-semibold text-primary">
+                {t('inviteBanner')}
+              </p>
+            )}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                 {t('phoneLabel')}

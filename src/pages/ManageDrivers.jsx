@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { MessageCircle } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
-import { localDigits, formatPhone } from '../lib/phone'
+import { localDigits, formatPhone, whatsappUrl } from '../lib/phone'
+import { driverInviteLink } from '../lib/invite'
 import BottomNav from '../components/BottomNav'
 import AddButton from '../components/AddButton'
 import Avatar from '../components/Avatar'
@@ -9,6 +11,9 @@ import { useTrans, LangToggle } from '../context/LangContext'
 // Owner only. Uses the Phase 2 objects as they are:
 //   read:   memberships (policy memberships_owner_read: business_id = auth.uid())
 //   add:    add_driver(p_name, p_phone)  → 'invited', becomes 'active' on login
+//   link:   after adding, the owner sends the driver an access link from their
+//           own WhatsApp (lib/invite.js). The link only pre-fills the login
+//           screen; access still comes from the verified phone.
 //   revoke: revoke_driver(p_membership_id) → takes effect on the driver's next request
 const ADD_ERRORS = {
   phone_is_owner: 'driverPhoneIsOwner',
@@ -61,10 +66,10 @@ function AddDriverSheet({ onClose, onSaved }) {
     const digits = localDigits(phone)
     if (!digits) { setError(t('validPhoneErr')); return }
     setSaving(true)
-    const { error } = await supabase.rpc('add_driver', { p_name: name.trim(), p_phone: digits })
+    const { data, error } = await supabase.rpc('add_driver', { p_name: name.trim(), p_phone: digits })
     setSaving(false)
     if (error) { setError(errorText(error, t)); return }
-    onSaved()
+    onSaved(data?.[0] ?? { name: name.trim(), phone: digits })
   }
 
   const input = 'w-full rounded-2xl border border-border bg-surface px-4 py-3.5 text-base font-semibold text-ink outline-none focus:border-primary'
@@ -102,6 +107,43 @@ function AddDriverSheet({ onClose, onSaved }) {
           {saving ? t('savingProfile') : t('addDriver')}
         </button>
       </form>
+    </Sheet>
+  )
+}
+
+// Send the driver their access link from the owner's own WhatsApp.
+function ShareLinkSheet({ driver, ownerName, onClose }) {
+  const { t } = useTrans()
+  const [copied, setCopied] = useState(false)
+  const link = driverInviteLink(driver.phone)
+  const message = t('inviteMessage', { name: driver.name, owner: ownerName, link })
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied(true)
+    } catch {
+      // Clipboard blocked (old browser, no permission): show it to copy by hand
+      window.prompt(t('copyLink'), link)
+    }
+  }
+
+  return (
+    <Sheet title={t('sendAccessLinkTitle', { name: driver.name })} onClose={onClose}>
+      <p className="text-base font-medium text-muted">{t('sendAccessLinkBody')}</p>
+      <p className="mt-3 break-all rounded-2xl bg-mint-50 px-4 py-3 text-sm font-semibold text-ink">{link}</p>
+      <a
+        href={whatsappUrl(driver.phone, message)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-primary text-lg font-extrabold text-white shadow-green active:scale-[0.98]"
+      >
+        <MessageCircle size={22} strokeWidth={2.4} aria-hidden="true" />
+        {t('sendLinkWhatsApp')}
+      </a>
+      <button onClick={copy} className="mt-2.5 min-h-12 w-full rounded-2xl border border-border text-base font-bold text-ink">
+        {copied ? t('linkCopied') : t('copyLink')}
+      </button>
     </Sheet>
   )
 }
@@ -147,6 +189,7 @@ export default function ManageDrivers({ owner, onSignOut, activeTab, onTabChange
   const [error, setError] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [revoking, setRevoking] = useState(null)
+  const [sharing, setSharing] = useState(null) // driver whose access link is being sent
   const [restoringId, setRestoringId] = useState(null)
 
   async function fetchDrivers() {
@@ -212,29 +255,40 @@ export default function ManageDrivers({ owner, onSignOut, activeTab, onTabChange
         )}
 
         {!loading && drivers.map((d) => (
-          <div key={d.id} className="flex items-center gap-3 rounded-[18px] bg-surface px-3.5 py-3 shadow-card">
-            <Avatar id={d.id} name={d.name} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-bold text-ink">{d.name}</p>
-              <p className="text-[13px] font-medium text-muted">{formatPhone(d.phone)}</p>
-              <span className={`mt-1 inline-block rounded-lg px-2 py-px text-xs font-bold ${STATUS_STYLE[d.status]}`}>
-                {t(`status_${d.status}`)}
-              </span>
+          <div key={d.id} className="rounded-[18px] bg-surface px-3.5 py-3 shadow-card">
+            <div className="flex items-center gap-3">
+              <Avatar id={d.id} name={d.name} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-base font-bold text-ink">{d.name}</p>
+                <p className="text-[13px] font-medium text-muted">{formatPhone(d.phone)}</p>
+                <span className={`mt-1 inline-block rounded-lg px-2 py-px text-xs font-bold ${STATUS_STYLE[d.status]}`}>
+                  {t(`status_${d.status}`)}
+                </span>
+              </div>
+              {d.status === 'revoked' ? (
+                <button
+                  onClick={() => restore(d)}
+                  disabled={restoringId === d.id}
+                  className="min-h-11 rounded-2xl bg-mint-100 px-3.5 text-sm font-bold text-primary disabled:opacity-60"
+                >
+                  {t('restoreDriver')}
+                </button>
+              ) : (
+                <button
+                  onClick={() => setRevoking(d)}
+                  className="min-h-11 rounded-2xl border border-border px-3.5 text-sm font-bold text-danger"
+                >
+                  {t('revokeDriver')}
+                </button>
+              )}
             </div>
-            {d.status === 'revoked' ? (
+            {d.status === 'invited' && (
               <button
-                onClick={() => restore(d)}
-                disabled={restoringId === d.id}
-                className="min-h-11 rounded-2xl bg-mint-100 px-3.5 text-sm font-bold text-primary disabled:opacity-60"
+                onClick={() => setSharing(d)}
+                className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-mint-100 text-sm font-extrabold text-primary active:scale-[0.98]"
               >
-                {t('restoreDriver')}
-              </button>
-            ) : (
-              <button
-                onClick={() => setRevoking(d)}
-                className="min-h-11 rounded-2xl border border-border px-3.5 text-sm font-bold text-danger"
-              >
-                {t('revokeDriver')}
+                <MessageCircle size={18} strokeWidth={2.4} aria-hidden="true" />
+                {t('sendLinkWhatsApp')}
               </button>
             )}
           </div>
@@ -246,8 +300,11 @@ export default function ManageDrivers({ owner, onSignOut, activeTab, onTabChange
       {showAdd && (
         <AddDriverSheet
           onClose={() => setShowAdd(false)}
-          onSaved={() => { setShowAdd(false); fetchDrivers() }}
+          onSaved={(driver) => { setShowAdd(false); setSharing(driver); fetchDrivers() }}
         />
+      )}
+      {sharing && (
+        <ShareLinkSheet driver={sharing} ownerName={owner.name} onClose={() => setSharing(null)} />
       )}
       {revoking && (
         <RevokeSheet

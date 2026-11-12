@@ -23,3 +23,11 @@ export function formatPhone(input) {
   const d = localDigits(input)
   return d ? `+91 ${d.slice(0, 5)} ${d.slice(5)}` : String(input ?? '')
 }
+
+// A WhatsApp chat with this number, with the message already typed. Opens the
+// sender's own WhatsApp; they tap send. Null if the number isn't valid.
+export function whatsappUrl(input, text = '') {
+  const d = localDigits(input)
+  if (!d) return null
+  return `https://wa.me/91${d}${text ? `?text=${encodeURIComponent(text)}` : ''}`
+}
