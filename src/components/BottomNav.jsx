@@ -1,16 +1,19 @@
-import { Home, Users, Wallet, Menu } from 'lucide-react'
+import { Home, Users, Wallet, Menu, IdCard, ClipboardList } from 'lucide-react'
 import { useTrans } from '../context/LangContext'
 
 const ALL_TABS = [
   { id: 'home',      labelKey: 'homeTab',      Icon: Home   },
   { id: 'customers', labelKey: 'customersTab', Icon: Users  },
   { id: 'earnings',  labelKey: 'earningsTab',  Icon: Wallet },
+  { id: 'drivers',   labelKey: 'driversTab',   Icon: IdCard },
+  { id: 'myjobs',    labelKey: 'myJobsTab',    Icon: ClipboardList },
   { id: 'more',      labelKey: 'moreTab',      Icon: Menu   },
 ]
 
 // Floating bottom bar (DESIGN.md → "Floating bottom bar").
 // `tabs` limits which tabs show — More is hidden until its screen exists.
-export default function BottomNav({ active, onChange, tabs = ['home', 'customers', 'earnings'] }) {
+// Default = owner tabs. Drivers pass ['customers', 'myjobs'].
+export default function BottomNav({ active, onChange, tabs = ['home', 'customers', 'earnings', 'drivers'] }) {
   const { t } = useTrans()
   const visible = ALL_TABS.filter((tab) => tabs.includes(tab.id))
 

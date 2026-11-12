@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient'
 import Login from './pages/Login'
 import ProfileSetup from './pages/ProfileSetup'
@@ -6,6 +6,10 @@ import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
 import EarningsScreen from './pages/EarningsScreen'
 import TimerScreen from './pages/TimerScreen'
+import ManageDrivers from './pages/ManageDrivers'
+import DriverApp from './pages/driver/DriverApp'
+import { loadMyRole } from './lib/roles'
+import { useTrans } from './context/LangContext'
 
 function InstallBanner() {
   const [prompt, setPrompt] = useState(null)
@@ -64,11 +68,61 @@ function Loading() {
   )
 }
 
+function CenteredMessage({ title, body, actions }) {
+  return (
+    <div className="flex min-h-svh items-center justify-center px-5">
+      <div className="w-full max-w-sm rounded-[26px] bg-surface p-7 text-center shadow-card">
+        <h1 className="text-[22px] font-extrabold leading-tight tracking-[-0.4px] text-ink">{title}</h1>
+        {body && <p className="mt-2 text-base font-medium text-muted">{body}</p>}
+        <div className="mt-6 flex flex-col gap-2.5">{actions}</div>
+      </div>
+    </div>
+  )
+}
+
+// Shown to a driver whose owner removed them, on login or mid-session.
+function AccessRemoved({ onSignOut }) {
+  const { t } = useTrans()
+  return (
+    <CenteredMessage
+      title={t('accessRemovedTitle')}
+      body={t('accessRemovedBody')}
+      actions={
+        <button onClick={onSignOut} className="min-h-14 rounded-2xl bg-primary text-lg font-extrabold text-white shadow-green">
+          {t('signOut')}
+        </button>
+      }
+    />
+  )
+}
+
+function RoleError({ onRetry, onSignOut }) {
+  const { t } = useTrans()
+  return (
+    <CenteredMessage
+      title={t('roleLoadFailed')}
+      actions={
+        <>
+          <button onClick={onRetry} className="min-h-14 rounded-2xl bg-primary text-lg font-extrabold text-white shadow-green">
+            {t('retry')}
+          </button>
+          <button onClick={onSignOut} className="min-h-12 text-base font-bold text-muted">
+            {t('signOut')}
+          </button>
+        </>
+      }
+    />
+  )
+}
+
 export default function App() {
   const [session, setSession] = useState(undefined) // undefined = loading, null = signed out
-  const [owner, setOwner] = useState(undefined)
+  // undefined = loading, null = no business yet, { error } = failed,
+  // { role: 'owner', owner } or { role: 'driver', status, … } from get_my_role
+  const [me, setMe] = useState(undefined)
+  const [accessRemoved, setAccessRemoved] = useState(false)
   const [activeJob, setActiveJob] = useState(null)  // { customer } | null
-  const [activeTab, setActiveTab] = useState('home') // 'home' | 'customers' | 'earnings'
+  const [activeTab, setActiveTab] = useState('home') // 'home' | 'customers' | 'earnings' | 'drivers'
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -78,41 +132,68 @@ export default function App() {
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  function fetchOwner(userId) {
-    return supabase
-      .from('owners')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
-      .then(({ data }) => setOwner(data ?? null))
-  }
+  // Re-run only when the logged-in user changes, not on every token refresh,
+  // so an hourly refresh never throws away a running timer.
+  const sessionLoaded = session !== undefined
+  const userId = session?.user?.id
+
+  const resolveRole = useCallback(async () => {
+    setMe(undefined)
+    setAccessRemoved(false)
+    try {
+      const role = await loadMyRole()
+      if (role?.role === 'owner') {
+        const { data, error } = await supabase.from('owners').select('*').eq('id', role.business_id).maybeSingle()
+        if (error) throw error
+        setMe(data ? { role: 'owner', owner: data } : null)
+      } else {
+        setMe(role)
+      }
+    } catch (err) {
+      console.error('[app] could not load role:', err)
+      setMe({ error: err })
+    }
+  }, [])
 
   useEffect(() => {
-    if (!session) {
-      setOwner(session === null ? null : undefined)
+    if (!sessionLoaded) return
+    if (!userId) {
+      setMe(null)
+      setActiveJob(null)
+      setActiveTab('home')
       return
     }
-    setOwner(undefined)
-    fetchOwner(session.user.id)
-  }, [session])
+    resolveRole()
+  }, [sessionLoaded, userId, resolveRole])
+
+  const signOut = () => supabase.auth.signOut()
 
   if (session === undefined) return <Loading />
   if (session === null) return <Login />
-  if (owner === undefined) return <Loading />
-  if (owner === null) {
+  if (me === undefined) return <Loading />
+  if (me?.error) return <RoleError onRetry={resolveRole} onSignOut={signOut} />
+
+  if (me?.role === 'driver') {
+    if (me.status !== 'active' || accessRemoved) return <AccessRemoved onSignOut={signOut} />
+    return <DriverApp me={me} onSignOut={signOut} onAccessRemoved={() => setAccessRemoved(true)} />
+  }
+
+  if (me === null) {
     return (
       <ProfileSetup
         user={session.user}
-        onComplete={() => fetchOwner(session.user.id)}
-        onBack={() => supabase.auth.signOut()}
+        onComplete={resolveRole}
+        onBack={signOut}
       />
     )
   }
+
+  const owner = me.owner
   if (activeJob) {
     return (
       <TimerScreen
         customer={activeJob.customer}
-        owner={owner}
+        vehicleRates={owner.vehicle_rates}
         onComplete={() => setActiveJob(null)}
         onBack={() => setActiveJob(null)}
       />
@@ -120,7 +201,7 @@ export default function App() {
   }
   const sharedProps = {
     owner,
-    onSignOut: () => supabase.auth.signOut(),
+    onSignOut: signOut,
     activeTab,
     onTabChange: setActiveTab,
   }
@@ -131,6 +212,7 @@ export default function App() {
       {activeTab === 'customers' && (
         <Dashboard {...sharedProps} onStartJob={(customer) => setActiveJob({ customer })} />
       )}
+      {activeTab === 'drivers' && <ManageDrivers {...sharedProps} />}
       <InstallBanner />
     </>
   )

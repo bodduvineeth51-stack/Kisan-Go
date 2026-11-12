@@ -210,6 +210,18 @@ Files: `capacitor.config.json` (new), `android/` (generated native project), `sr
 - Firebase phone login still uses the web reCAPTCHA flow; `localhost` must be in Firebase → Authentication → Settings → Authorized domains.
 - iOS not added yet (needs full Xcode + CocoaPods; Firebase web reCAPTCHA won't work under iOS's `capacitor://` scheme — would need native Firebase auth).
 
+### Phase 10 — Owner / driver roles 🚧 (code done on branch `roles`; not yet applied/tested on kisan-go-dev)
+Reuses the Android repo's Phase 2 database objects unchanged (`supabase/migrations/20261027094210_roles_and_memberships.sql`, copied here byte-for-byte so migration history matches kisan-go-dev). Only new DB object: `claim_driver_invite()` (`20261112090000_claim_driver_invite.sql`).
+
+- Local dev uses `.env.local` → kisan-go-dev (`ctsohixfzmbzmbahvhda`). `.env` is production — never point migrations or deploys at it.
+- Routing (`App.jsx`, every app open): `claim_driver_invite` → `get_my_role` → owner (owners row, existing screens) / active driver (`pages/driver/`) / revoked driver (access removed screen) / no row (ProfileSetup). Re-runs only when the user id changes, not on token refresh.
+- Drivers have NO table policies; driver screens use only RPCs via `driverRpc` (`lib/roles.js`), which turns 42501 / a non-active `get_my_role` into the revoked screen.
+- All job submits (owner and driver) use `submit_work_record`: hours and amount are computed in the DB. Owners can still insert `work_records` directly under the old owner policy (kept for the production web app).
+- `send-whatsapp` now authenticates the caller, loads the bill from the DB and ignores body values except `record_id` and `lang`. Allowed: the business owner, or an active driver of that business for a record they created.
+- Phones: `src/lib/phone.js` (`localDigits`, `toE164`, `formatPhone`). Customers and memberships store 10 digits; owners.phone stores +91XXXXXXXXXX for new sign-ups.
+- DB tests: `supabase/tests/claim_driver_invite.test.sql` (`supabase test db --linked`, dev only).
+- Production needs the Phase 2 + claim migrations BEFORE this branch is deployed there (`get_my_role` / `claim_driver_invite` don't exist on prod yet).
+
 ## Rules
 - All UI must follow `kisan-design/DESIGN.md` (colours, fonts, spacing,
   shapes, icons) and match the reference screens in `kisan-design/screens/`.

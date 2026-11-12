@@ -1,0 +1,8 @@
+# Minimal CLI config so this repo can link, push migrations and deploy
+# functions. Link to kisan-go-dev ONLY:
+#   supabase link --project-ref ctsohixfzmbzmbahvhda
+project_id = "kisan-go-web"
+
+[functions.firebase-login]
+# Called before the user has a session.
+verify_jwt = false

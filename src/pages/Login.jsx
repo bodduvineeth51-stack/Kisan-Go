@@ -3,6 +3,7 @@ import { RecaptchaVerifier, signInWithPhoneNumber, signOut } from 'firebase/auth
 import { supabase } from '../lib/supabaseClient'
 import { getFirebaseAuth } from '../lib/firebaseClient'
 import { useTrans, LangToggle } from '../context/LangContext'
+import { localDigits, toE164 } from '../lib/phone'
 
 // Firebase error codes worth a plain-language message; anything else falls
 // back to the generic login error.
@@ -25,7 +26,7 @@ export default function Login() {
   const verifier = useRef(null)
   const confirmation = useRef(null)
 
-  const e164Phone = `+91${phone}`
+  const e164Phone = toE164(phone)
 
   function showError(err) {
     console.error('[login]', err)
@@ -39,7 +40,7 @@ export default function Login() {
   async function handleSendOtp(e) {
     e.preventDefault()
     setError('')
-    if (!/^\d{10}$/.test(phone)) { setError(t('invalidPhone')); return }
+    if (!e164Phone) { setError(t('invalidPhone')); return }
     setLoading(true)
     try {
       const auth = getFirebaseAuth()
@@ -73,7 +74,8 @@ export default function Login() {
         type: data.type,
       })
       if (sessionError) throw sessionError
-      // Supabase holds the session from here on
+      // Supabase holds the session from here on. App now runs
+      // claim_driver_invite and get_my_role before it picks a screen.
       await signOut(getFirebaseAuth())
     } catch (err) {
       showError(err)
@@ -105,7 +107,7 @@ export default function Login() {
                   id="phone"
                   type="tel"
                   inputMode="numeric"
-                  maxLength={10}
+                  maxLength={13}
                   placeholder="9876543210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
@@ -129,7 +131,7 @@ export default function Login() {
           <form className="mt-6 space-y-4" onSubmit={handleVerifyOtp}>
             <div>
               <label htmlFor="otp" className="block text-sm font-medium text-gray-700">
-                {t('otpLabel', { phone })}
+                {t('otpLabel', { phone: localDigits(phone) ?? phone })}
               </label>
               <input
                 id="otp"

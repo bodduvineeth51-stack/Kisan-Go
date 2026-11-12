@@ -29,6 +29,7 @@ export default function CustomerCard({
   onEdit,
   onStartJob,
   onRetryWhatsapp = () => {},
+  recordedBy = () => null,
 }) {
   const { t } = useTrans()
   const recentRecords = records.slice(0, 3)
@@ -89,8 +90,9 @@ export default function CustomerCard({
                   ₹{r.amount.toLocaleString('en-IN')}
                 </span>
               </div>
-              <div className="mt-0.5">
+              <div className="mt-0.5 flex items-center justify-between gap-2">
                 <WhatsAppStatus record={r} onRetry={onRetryWhatsapp} t={t} />
+                {recordedBy(r) && <span className="truncate text-xs text-gray-400">{recordedBy(r)}</span>}
               </div>
             </div>
           ))}

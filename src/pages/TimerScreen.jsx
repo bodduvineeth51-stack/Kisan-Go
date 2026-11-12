@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { driverRpc, AccessRemovedError } from '../lib/roles'
+import { formatMoney, formatHours } from '../lib/format'
 import VoiceEntry from '../components/VoiceEntry'
 import { useTrans } from '../context/LangContext'
 
@@ -40,9 +42,22 @@ function calcTotals(sessions) {
   return { totalMins, totalHours: totalMins / 60 }
 }
 
-export default function TimerScreen({ customer, owner, onComplete, onBack }) {
+// Used by owners and drivers. Hours and amount are always worked out by the
+// database (Phase 2 submit_work_record) from the sessions and the owner's rate
+// for that vehicle; the numbers shown here before Submit are only a preview.
+//
+// role 'driver': after Submit, shows the amount of the job just submitted, and
+// calls onAccessRemoved if the owner has revoked this driver.
+export default function TimerScreen({
+  customer,
+  vehicleRates = [],
+  onComplete,
+  onBack,
+  role = 'owner',
+  onAccessRemoved = () => {},
+}) {
   const { t, lang } = useTrans()
-  const autoVehicle = owner.vehicle_rates.length === 1 ? owner.vehicle_rates[0] : null
+  const autoVehicle = vehicleRates.length === 1 ? vehicleRates[0] : null
   const [vehicle, setVehicle] = useState(autoVehicle)
   const [sessions, setSessions] = useState([])
   const [activeStart, setActiveStart] = useState(null)
@@ -54,6 +69,7 @@ export default function TimerScreen({ customer, owner, onComplete, onBack }) {
   const [manualError, setManualError] = useState('')
   const [submitPhase, setSubmitPhase] = useState(null)
   const [error, setError] = useState('')
+  const [submitted, setSubmitted] = useState(null) // driver: { record, whatsapp_status }
 
   useEffect(() => {
     if (!activeStart) return
@@ -111,47 +127,45 @@ export default function TimerScreen({ customer, owner, onComplete, onBack }) {
     if (sessions.length === 0) { setError(t('errAddSession')); return }
     if (activeStart) { setError(t('errStopFirst')); return }
 
-    const { totalHours } = calcTotals(sessions)
-    const roundedHours = Math.round(totalHours * 100) / 100
-    const amount = Math.round(totalHours * vehicle.hourly_rate)
-
     setSubmitPhase('saving')
-    const { data, error } = await supabase
-      .from('work_records')
-      .insert({
-        customer_id: customer.id,
-        owner_id: owner.id,
-        vehicle_type: vehicle.type,
-        hourly_rate: vehicle.hourly_rate,
-        sessions,
-        total_hours: roundedHours,
-        amount,
-        whatsapp_status: 'pending',
-      })
-      .select()
-      .single()
-
-    if (error) { setError(error.message); setSubmitPhase(null); return }
-
-    setSubmitPhase('sending')
+    let record
     try {
-      await supabase.functions.invoke('send-whatsapp', {
-        body: {
-          record_id: data.id,
-          customer_phone: customer.phone,
-          customer_name: customer.name,
-          vehicle_type: vehicle.type,
-          total_hours: roundedHours,
-          hourly_rate: vehicle.hourly_rate,
-          amount,
-          lang,
-        },
+      const rows = await driverRpc('submit_work_record', {
+        p_customer_id: customer.id,
+        p_vehicle_type: vehicle.type,
+        p_sessions: sessions,
       })
-    } catch {
-      // WhatsApp failed — record is saved; user can retry from the dashboard
+      record = rows?.[0]
+      if (!record) throw new Error(t('submitFailed'))
+    } catch (err) {
+      setSubmitPhase(null)
+      if (err instanceof AccessRemovedError && role === 'driver') { onAccessRemoved(); return }
+      setError(submitErrorText(err, t))
+      return
     }
 
-    onComplete(data)
+    setSubmitPhase('sending')
+    let whatsapp_status = 'failed'
+    try {
+      // The function looks up the bill (customer, hours, amount) itself.
+      const { data } = await supabase.functions.invoke('send-whatsapp', {
+        body: { record_id: record.id, lang },
+      })
+      whatsapp_status = data?.whatsapp_status ?? 'failed'
+    } catch {
+      // WhatsApp failed — record is saved; the owner can retry from the dashboard
+    }
+
+    if (role === 'driver') {
+      setSubmitPhase(null)
+      setSubmitted({ record, whatsapp_status })
+      return
+    }
+    onComplete(record)
+  }
+
+  if (submitted) {
+    return <SubmittedView customer={customer} {...submitted} onDone={() => onComplete(submitted.record)} />
   }
 
   const { totalMins, totalHours } = calcTotals(sessions)
@@ -180,11 +194,13 @@ export default function TimerScreen({ customer, owner, onComplete, onBack }) {
       <div className="mx-auto w-full max-w-lg flex-1 space-y-5 px-4 py-5 pb-10">
 
         {/* Vehicle selector */}
-        {owner.vehicle_rates.length > 1 ? (
+        {vehicleRates.length === 0 ? (
+          <p className="rounded-2xl bg-due-bg px-4 py-3 text-sm font-semibold text-due">{t('noVehicles')}</p>
+        ) : vehicleRates.length > 1 ? (
           <div>
             <p className="mb-2 text-sm font-semibold text-gray-700">{t('selectVehicleTitle')}</p>
             <div className="flex flex-wrap gap-2">
-              {owner.vehicle_rates.map((v) => (
+              {vehicleRates.map((v) => (
                 <button
                   key={v.type}
                   onClick={() => setVehicle(v)}
@@ -203,9 +219,9 @@ export default function TimerScreen({ customer, owner, onComplete, onBack }) {
         ) : (
           <div className="rounded-2xl bg-green-50 px-4 py-3">
             <p className="text-sm font-semibold text-green-800">
-              {owner.vehicle_rates[0].type}
+              {vehicleRates[0].type}
               <span className="ml-2 font-normal text-green-600">
-                ₹{owner.vehicle_rates[0].hourly_rate}/{t('hrShort')}
+                ₹{vehicleRates[0].hourly_rate}/{t('hrShort')}
               </span>
             </p>
           </div>
@@ -374,11 +390,52 @@ export default function TimerScreen({ customer, owner, onComplete, onBack }) {
       {showVoice && (
         <VoiceEntry
           customer={customer}
-          vehicleTypes={owner.vehicle_rates}
+          vehicleTypes={vehicleRates}
           onConfirm={handleVoiceConfirm}
           onClose={() => setShowVoice(false)}
         />
       )}
+    </div>
+  )
+}
+
+const SUBMIT_ERRORS = {
+  unknown_vehicle: 'errUnknownVehicle',
+  no_sessions: 'errAddSession',
+  bad_sessions: 'errStopAfterStart',
+  customer_not_found: 'errCustomerGone',
+}
+
+function submitErrorText(err, t) {
+  const key = Object.keys(SUBMIT_ERRORS).find((k) => (err?.message ?? '').includes(k))
+  return key ? t(SUBMIT_ERRORS[key]) : (err?.message || t('submitFailed'))
+}
+
+// Driver's confirmation after Submit: the amount the database worked out.
+function SubmittedView({ customer, record, whatsapp_status, onDone }) {
+  const { t } = useTrans()
+  const sent = whatsapp_status === 'sent'
+  return (
+    <div className="flex min-h-svh flex-col items-center justify-center px-5">
+      <div className="w-full max-w-sm rounded-[26px] bg-surface p-6 text-center shadow-card">
+        <p className="text-sm font-bold uppercase tracking-widest text-primary">{t('jobSubmitted')}</p>
+        <p className="mt-1 text-lg font-bold text-ink">{customer.name}</p>
+        <p className="mt-3 text-[44px] font-extrabold leading-none tracking-[-1.5px] text-ink">
+          {formatMoney(record.amount)}
+        </p>
+        <p className="mt-2 text-sm font-medium text-muted">
+          {record.vehicle_type} · {formatHours(record.total_hours)} × ₹{record.hourly_rate}/{t('hrShort')}
+        </p>
+        <p className={`mt-4 inline-block rounded-lg px-2.5 py-1 text-sm font-bold ${sent ? 'bg-mint-100 text-primary' : 'bg-due-bg text-due'}`}>
+          {sent ? t('whatsappSent') : t('billNotSentDriver')}
+        </p>
+        <button
+          onClick={onDone}
+          className="mt-6 min-h-14 w-full rounded-2xl bg-primary text-lg font-extrabold text-white shadow-green active:scale-[0.98]"
+        >
+          {t('done')}
+        </button>
+      </div>
     </div>
   )
 }

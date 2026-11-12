@@ -4,6 +4,8 @@ import CustomerCard from '../components/CustomerCard'
 import BottomNav from '../components/BottomNav'
 import AddButton from '../components/AddButton'
 import { useTrans, LangToggle } from '../context/LangContext'
+import { localDigits } from '../lib/phone'
+import { useRecordedBy } from '../lib/useRecordedBy'
 
 export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onTabChange }) {
   const { t, lang } = useTrans()
@@ -14,6 +16,7 @@ export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onT
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
+  const recordedBy = useRecordedBy(owner.id)
 
   useEffect(() => { fetchAll() }, [])
 
@@ -69,17 +72,9 @@ export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onT
     setWorkRecords((prev) =>
       prev.map((r) => r.id === record.id ? { ...r, whatsapp_status: 'sending' } : r),
     )
+    // The function looks up the bill (customer, hours, amount) from the record.
     const { data } = await supabase.functions.invoke('send-whatsapp', {
-      body: {
-        record_id: record.id,
-        customer_phone: customer.phone,
-        customer_name: customer.name,
-        vehicle_type: record.vehicle_type,
-        total_hours: record.total_hours,
-        hourly_rate: record.hourly_rate,
-        amount: record.amount,
-        lang,
-      },
+      body: { record_id: record.id, lang },
     })
     const newStatus = data?.whatsapp_status ?? 'failed'
     setWorkRecords((prev) =>
@@ -170,6 +165,7 @@ export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onT
               onEdit={() => openEdit(c)}
               onStartJob={() => onStartJob(c)}
               onRetryWhatsapp={(record) => handleRetryWhatsapp(record)}
+              recordedBy={recordedBy}
             />
           ))}
         </div>
@@ -211,26 +207,31 @@ export function CustomerForm({ editing, ownerId, onClose, onSaved }) {
     e.preventDefault()
     setError('')
     if (!name.trim()) { setError(t('enterCustomerName')); return }
-    if (!/^\d{10}$/.test(phone)) { setError(t('validPhoneErr')); return }
+    const digits = localDigits(phone)
+    if (!digits) { setError(t('validPhoneErr')); return }
 
     setLoading(true)
     let result
     if (editing) {
       result = await supabase
         .from('customers')
-        .update({ name: name.trim(), phone })
+        .update({ name: name.trim(), phone: digits })
         .eq('id', editing.id)
         .select()
         .single()
     } else {
       result = await supabase
         .from('customers')
-        .insert({ owner_id: ownerId, name: name.trim(), phone, is_paid: false })
+        .insert({ owner_id: ownerId, name: name.trim(), phone: digits, is_paid: false })
         .select()
         .single()
     }
     setLoading(false)
-    if (result.error) { setError(result.error.message); return }
+    if (result.error) {
+      // Phase 2: one customer per phone per business (unique index).
+      setError(result.error.code === '23505' ? t('customerPhoneExists') : result.error.message)
+      return
+    }
     onSaved(result.data)
   }
 
@@ -269,7 +270,7 @@ export function CustomerForm({ editing, ownerId, onClose, onSaved }) {
             <input
               type="tel"
               inputMode="numeric"
-              maxLength={10}
+              maxLength={13}
               placeholder="9876543210"
               value={phone}
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}

@@ -7,6 +7,7 @@ import AddButton from '../components/AddButton'
 import Avatar from '../components/Avatar'
 import { CustomerForm } from './Dashboard'
 import { useTrans } from '../context/LangContext'
+import { useRecordedBy } from '../lib/useRecordedBy'
 
 function Logo() {
   return (
@@ -67,6 +68,7 @@ export default function Home({ owner, activeTab, onTabChange }) {
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
   const [showForm, setShowForm]       = useState(false)
+  const recordedBy = useRecordedBy(owner.id)
 
   async function fetchAll() {
     setLoading(true)
@@ -217,6 +219,9 @@ export default function Home({ owner, activeTab, onTabChange }) {
                   <span className="block text-[13px] font-medium text-muted">
                     {r.vehicle_type} · {formatHours(r.total_hours)}
                   </span>
+                  {recordedBy(r) && (
+                    <span className="block truncate text-xs font-medium text-muted">{recordedBy(r)}</span>
+                  )}
                 </span>
                 <span className="text-right">
                   <span className="block text-base font-extrabold">{formatMoney(r.amount)}</span>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { useTrans, LangToggle } from '../context/LangContext'
+import { toE164 } from '../lib/phone'
 
 const VEHICLE_TYPES = [
   'Tractor', 'Harvester', 'Rotavator', 'Trailer',
@@ -35,11 +36,15 @@ export default function ProfileSetup({ user, onComplete, onBack }) {
     const { error } = await supabase.from('owners').insert({
       id: user.id,
       name: name.trim(),
-      phone: user.phone,
+      phone: toE164(user.phone) ?? user.phone,
       vehicle_rates: vehicleRates,
     })
     setLoading(false)
-    if (error) { setError(error.message); return }
+    if (error) {
+      // Phase 2 trigger: a phone that is already someone's driver can't sign up as an owner.
+      setError(error.message?.includes('phone_is_driver') ? t('phoneIsDriver') : error.message)
+      return
+    }
     onComplete()
   }
 
