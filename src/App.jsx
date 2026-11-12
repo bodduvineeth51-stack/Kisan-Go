@@ -175,7 +175,14 @@ export default function App() {
 
   if (me?.role === 'driver') {
     if (me.status !== 'active' || accessRemoved) return <AccessRemoved onSignOut={signOut} />
-    return <DriverApp me={me} onSignOut={signOut} onAccessRemoved={() => setAccessRemoved(true)} />
+    return (
+      <DriverApp
+        me={me}
+        phone={session.user.phone}
+        onSignOut={signOut}
+        onAccessRemoved={() => setAccessRemoved(true)}
+      />
+    )
   }
 
   if (me === null) {
