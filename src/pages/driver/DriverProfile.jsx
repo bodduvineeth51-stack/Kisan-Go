@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { LogOut } from 'lucide-react'
+import { LogOut, Repeat } from 'lucide-react'
 import { driverRpc, AccessRemovedError } from '../../lib/roles'
 import { formatPhone } from '../../lib/phone'
 import BottomNav from '../../components/BottomNav'
@@ -31,7 +31,7 @@ function Card({ title, children }) {
 // number, the business they drive for, the vehicles and rates from
 // get_my_role, and their own jobs from my_work_records. Deliberately no money
 // totals and no paid status.
-export default function DriverProfile({ me, phone, onSignOut, onAccessRemoved, activeTab, onTabChange }) {
+export default function DriverProfile({ me, phone, onSignOut, onAccessRemoved, activeTab, onTabChange, onSwitchToOwner }) {
   const { t, lang } = useTrans()
   const [jobs, setJobs] = useState(undefined) // undefined = loading, null = failed
 
@@ -97,6 +97,16 @@ export default function DriverProfile({ me, phone, onSignOut, onAccessRemoved, a
         </Card>
 
         <p className="px-1 text-sm font-medium text-muted">{t('profileContactOwner')}</p>
+
+        {onSwitchToOwner && (
+          <button
+            onClick={onSwitchToOwner}
+            className="flex min-h-14 items-center justify-center gap-2 rounded-[18px] bg-mint-100 px-4 text-base font-extrabold text-primary shadow-card active:scale-[0.98]"
+          >
+            <Repeat size={20} strokeWidth={2.4} aria-hidden="true" />
+            {t('switchToOwner')}
+          </button>
+        )}
 
         <button
           onClick={onSignOut}

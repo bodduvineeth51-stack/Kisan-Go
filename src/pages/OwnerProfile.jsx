@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, LogOut, Plus, Tractor, Trash2 } from 'lucide-react'
+import { Check, LogOut, Plus, Repeat, Tractor, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { formatPhone } from '../lib/phone'
 import { initials } from '../lib/format'
@@ -8,7 +8,7 @@ import { useTrans, LangToggle } from '../context/LangContext'
 import BottomNav from '../components/BottomNav'
 import { Card, Field, PageHeader, PrimaryButton } from '../components/ui'
 
-export default function OwnerProfile({ owner, onSaved, onSignOut, activeTab, onTabChange }) {
+export default function OwnerProfile({ owner, onSaved, onSignOut, activeTab, onTabChange, driverFor, onSwitchToDriver }) {
   const { t } = useTrans()
   const [name, setName] = useState(owner.name)
   const [vehicles, setVehicles] = useState(() => owner.vehicle_rates.map(v => ({ ...v })))
@@ -153,6 +153,14 @@ export default function OwnerProfile({ owner, onSaved, onSignOut, activeTab, onT
             {saving ? t('savingProfile') : t('saveChanges')}
           </PrimaryButton>
         </form>
+        {onSwitchToDriver && (
+          <button
+            onClick={onSwitchToDriver}
+            className="flex min-h-14 items-center justify-center gap-2 rounded-[18px] bg-mint-100 px-4 text-base font-extrabold text-primary shadow-card active:scale-[0.98]"
+          >
+            <Repeat size={20} strokeWidth={2.4} aria-hidden="true" />{t('switchToDriver', { business: driverFor })}
+          </button>
+        )}
         <button
           onClick={onSignOut}
           className="flex min-h-14 items-center justify-center gap-2 rounded-[18px] bg-surface text-base font-extrabold text-danger shadow-card"

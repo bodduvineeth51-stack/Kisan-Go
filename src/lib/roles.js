@@ -1,21 +1,51 @@
 import { supabase } from './supabaseClient'
 
-// Who is logged in, decided by the database (Phase 2 get_my_role):
+// Who is logged in, decided by the database (get_my_role):
 //   { role: 'owner',  status: 'active',  business_id, business_name, name, vehicle_rates }
 //   { role: 'driver', status: 'active' | 'revoked', … }
 //   null → no business yet (owner sign-up form)
 //
+// One person can be an owner AND a driver for another owner's business. Then
+// get_my_role returns both rows, and the side the app is showing is sent to the
+// database as the header  x-kisan-mode: driver  so the driver functions work on
+// the right business. The header only chooses between the caller's own roles.
+
+let actingAs = 'owner' // the side currently on screen
+
+export function setActingAs(mode) {
+  actingAs = mode === 'driver' ? 'driver' : 'owner'
+}
+
+const modeKey = (userId) => `kisan_mode_${userId}`
+export function savedMode(userId) {
+  try {
+    const value = localStorage.getItem(modeKey(userId))
+    return value === 'driver' || value === 'owner' ? value : null
+  } catch {
+    return null
+  }
+}
+export function saveMode(userId, mode) {
+  try { localStorage.setItem(modeKey(userId), mode) } catch { /* private window: not remembered */ }
+}
+
+const rpc = (fn, args, mode = actingAs) => supabase.rpc(fn, args).setHeader('x-kisan-mode', mode)
+
 // claim_driver_invite runs first so a driver the owner just added lands on the
 // driver screens on their very first login. It reads the verified phone on the
 // server; nothing about the phone is sent from here.
-export async function loadMyRole() {
+//
+// Returns the row for the preferred side (or the only row), with the person's
+// other role, if any, as `.other`.
+export async function loadMyRole(preferred = actingAs) {
   const claim = await supabase.rpc('claim_driver_invite')
   // Never turn a failed invitation claim into an accidental owner sign-up.
   if (claim.error) throw claim.error
 
-  const { data, error } = await supabase.rpc('get_my_role')
+  const { data, error } = await rpc('get_my_role', undefined, preferred)
   if (error) throw error
-  return data?.[0] ?? null
+  const [first, second] = data ?? []
+  return first ? { ...first, other: second ?? null } : null
 }
 
 // The database said this user may not do this (revoked driver, or a driver
@@ -41,15 +71,15 @@ export class AccessRemovedError extends Error {
 // of raising, so for those we also re-check get_my_role in the same round trip.
 export async function driverRpc(fn, args, { checkStatus = false } = {}) {
   const [res, roleRes] = await Promise.all([
-    supabase.rpc(fn, args),
-    checkStatus ? supabase.rpc('get_my_role') : Promise.resolve(null),
+    rpc(fn, args),
+    checkStatus ? rpc('get_my_role') : Promise.resolve(null),
   ])
   if (isNotAllowed(res.error)) throw new AccessRemovedError()
   if (roleRes) {
     if (roleRes.error && isNotAllowed(roleRes.error)) throw new AccessRemovedError()
     if (roleRes.error) throw roleRes.error
     const me = roleRes.data?.[0]
-    if (!roleRes.error && (!me || me.role !== 'driver' || me.status !== 'active')) {
+    if (!me || me.role !== 'driver' || me.status !== 'active') {
       throw new AccessRemovedError()
     }
   }

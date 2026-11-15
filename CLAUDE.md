@@ -262,6 +262,12 @@ Reuses the Android repo's Phase 2 database objects unchanged (`supabase/migratio
 - `send-whatsapp` deployed to production (`--use-api`); production has the Twilio secrets. It is compatible with the old web app, which already sends `record_id` with the login token.
 - `supabase functions list` hangs with this CLI version; `secrets list` and `functions deploy --use-api` work.
 
+### Phase 14 — An owner can also be another owner's driver (November 15, production)
+- `20261116090000_owner_can_be_driver.sql`: `add_driver` accepts any valid number except the calling owner's own (`phone_is_self`); one live driver invite per phone and one active driver role per login remain. `link_invites` links owners too (never into their own business). A driver still can't sign up as an owner (`phone_is_driver`).
+- Side selection: the web app sends header `x-kisan-mode: driver` (from `lib/roles.js`, on `get_my_role` and every `driverRpc`) while showing driver screens. `get_my_role` returns one row per role, requested side first; `caller_context` in driver mode answers only with an active driver membership (no fallback to the person's own business).
+- App: first open for a dual-role person shows a chooser (`RoleChooser` in `App.jsx`); the choice is saved per user in localStorage (`kisan_mode_<uid>`). Opening a driver link with your own number opens the driver side. Owner and driver Profile pages have a switch button; the access-removed screen offers "Open my business".
+- Tests: `tests/database.test.js` (owner-as-driver case) and two browser tests in `tests/browser/flows.spec.js`.
+
 ## Rules
 - All UI must follow `kisan-design/DESIGN.md` (colours, fonts, spacing,
   shapes, icons) and match the reference screens in `kisan-design/screens/`.

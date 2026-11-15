@@ -29,11 +29,14 @@ test('invitation lifecycle, tenant isolation, owner profile and billing rates', 
   for (const [i, [name, id]] of Object.entries(ids).entries()) {
     await db.query('insert into auth.users values ($1, $2, $3)', [id, phones[i], name === 'unverified' ? null : new Date().toISOString()])
   }
-  const as = (user, sql, params = []) => db.transaction(async tx => {
+  // mode 'driver' = the web app's  x-kisan-mode: driver  header.
+  const asMode = (user, mode, sql, params = []) => db.transaction(async tx => {
     await tx.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify({ sub: ids[user], role: 'authenticated' })])
+    await tx.query("select set_config('request.headers', $1, true)", [mode ? JSON.stringify({ 'x-kisan-mode': mode }) : ''])
     await tx.exec('set local role authenticated')
     return (await tx.query(sql, params)).rows
   })
+  const as = (user, sql, params = []) => asMode(user, null, sql, params)
   for (const name of ['owner', 'otherOwner']) {
     await as(name, `insert into public.owners(id, phone, name, vehicle_rates) values ($1, $2, $3, $4)`,
       [ids[name], phones[Object.keys(ids).indexOf(name)], name, JSON.stringify([{ type: 'Tractor', hourly_rate: 1200 }])])
@@ -100,5 +103,35 @@ test('invitation lifecycle, tenant isolation, owner profile and billing rates', 
     assert.equal((await as('owner', "select * from public.add_driver('Driver One', '9848000002')"))[0].status, 'active')
     assert.equal((await as('driver', 'select * from public.get_my_role()'))[0].status, 'active')
     assert.equal((await as('driver', 'select * from public.my_work_records()')).length, 2)
+  })
+  await t.test('an owner can be invited as a driver by another owner, never by themselves', async () => {
+    await assert.rejects(as('owner', "select * from public.add_driver('Me', '+91 98480 00001')"), /phone_is_self/)
+    await assert.rejects(as('owner', "select * from public.add_driver('Me', '9848000001')"), /phone_is_self/)
+    const [invite] = await as('owner', "select * from public.add_driver('Other Owner', '9848000003')")
+    assert.equal(invite.status, 'invited')
+    assert.equal((await as('otherOwner', 'select public.claim_driver_invite() as count'))[0].count, 1)
+
+    // Owner side first by default; driver side first when the app asks for it.
+    const roles = await as('otherOwner', 'select * from public.get_my_role()')
+    assert.deepEqual(roles.map(r => `${r.role}/${r.status}`), ['owner/active', 'driver/active'])
+    assert.equal(roles[1].business_id, ids.owner)
+    const driverFirst = await asMode('otherOwner', 'driver', 'select * from public.get_my_role()')
+    assert.deepEqual(driverFirst.map(r => r.role), ['driver', 'owner'])
+
+    // The mode decides which business the driver functions work on.
+    assert.deepEqual(await as('otherOwner', 'select * from public.list_customers_basic()'), [])
+    assert.deepEqual((await asMode('otherOwner', 'driver', 'select * from public.list_customers_basic()')).map(c => c.name), ['Ramulu'])
+    const [bill] = await asMode('otherOwner', 'driver', 'select * from public.submit_work_record($1, $2, $3)', [customer.id, 'Tractor', JSON.stringify([{ start: '2026-11-16T06:00:00Z', stop: '2026-11-16T07:00:00Z' }])])
+    assert.equal(Number(bill.amount), 1500)
+    assert.equal((await as('owner', 'select owner_id, created_by from public.work_records where id = $1', [bill.id]))[0].created_by, ids.otherOwner)
+    assert.deepEqual(await as('otherOwner', 'select * from public.work_records where id = $1', [bill.id]), [], 'own owner tables never show the other business')
+
+    // Removing them as a driver leaves their own business untouched and never
+    // lets driver mode fall back to it.
+    await as('owner', 'select public.revoke_driver($1)', [invite.id])
+    assert.equal((await asMode('otherOwner', 'driver', 'select * from public.get_my_role()'))[0].status, 'revoked')
+    await assert.rejects(asMode('otherOwner', 'driver', "select * from public.add_customer('Blocked', '9848099997')"), /no_access/)
+    assert.equal((await as('otherOwner', "select * from public.add_customer('Own Customer', '9848099996')"))[0].already_exists, false)
+    assert.equal((await as('otherOwner', 'select * from public.get_my_role()'))[0].role, 'owner')
   })
 })

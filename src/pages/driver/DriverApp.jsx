@@ -13,7 +13,7 @@ import { useTrans } from '../../context/LangContext'
 //
 // me = get_my_role() row: { business_name, name, vehicle_rates, … }
 // phone = the driver's verified login number (from the session)
-export default function DriverApp({ me, phone, onSignOut, onAccessRemoved }) {
+export default function DriverApp({ me, phone, onSignOut, onAccessRemoved, onSwitchToOwner }) {
   const { t } = useTrans()
   const [tab, setTab] = useState('home')
   const [activeJob, setActiveJob] = useState(null) // { customer }
@@ -76,7 +76,7 @@ export default function DriverApp({ me, phone, onSignOut, onAccessRemoved }) {
     {starting && <p role="status" className="bg-mint-100 p-3 text-center font-semibold text-primary">{t('loading')}</p>}
     {tab === 'home' && <DriverDashboard {...shared} />}
     {tab === 'myjobs' && <MyJobs {...shared} />}
-    {tab === 'profile' && <DriverProfile {...shared} phone={phone} />}
+    {tab === 'profile' && <DriverProfile {...shared} phone={phone} onSwitchToOwner={onSwitchToOwner} />}
     {tab === 'customers' && <DriverCustomers {...shared} onStartJob={startJob} />}
   </>
 }

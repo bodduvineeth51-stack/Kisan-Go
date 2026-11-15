@@ -7,10 +7,12 @@ const OWNER = '00000000-0000-4000-b000-000000000001'
 const DRIVER = '00000000-0000-4000-b000-000000000002'
 
 async function setup(page, { role = 'owner', invited = false, status = 'active', signedIn = true } = {}) {
-  const user = { id: role === 'owner' ? OWNER : DRIVER, phone: role === 'owner' ? '919848000001' : '919848000002', aud: 'authenticated', role: 'authenticated' }
+  // role 'both' = an owner who is also a driver for another business (Lakshmi Farms).
+  const ownerLogin = role === 'owner' || role === 'both'
+  const user = { id: ownerLogin ? OWNER : DRIVER, phone: ownerLogin ? '919848000001' : '919848000002', aud: 'authenticated', role: 'authenticated' }
   const owner = { id: OWNER, name: 'Srinivas', phone: '919848000001', vehicle_rates: [{ type: 'Tractor', hourly_rate: 1200 }] }
   const customer = { id: '00000000-0000-4000-b000-000000000010', name: 'Ramulu', phone: '9848099999', owner_id: OWNER, is_paid: false }
-  const state = { owner, role, status, jobs: [], members: [], claimFails: false }
+  const state = { owner, role, status, jobs: [], members: [], claimFails: false, modes: {} }
   if (signedIn) await page.addInitScript(({ storageKey, user }) => {
     if (!localStorage.getItem(storageKey)) localStorage.setItem(storageKey, JSON.stringify({ access_token: 'test-access-token', refresh_token: 'test-refresh-token', expires_at: Math.floor(Date.now() / 1000) + 3600, token_type: 'bearer', user }))
   }, { storageKey, user })
@@ -19,6 +21,13 @@ async function setup(page, { role = 'owner', invited = false, status = 'active',
     const url = new URL(request.url())
     const body = request.postDataJSON()
     let data = []
+    const mode = request.headers()['x-kisan-mode']
+    if (url.pathname.startsWith('/rest/v1/rpc/')) state.modes[url.pathname.split('/').pop()] = mode
+    if (url.pathname === '/rest/v1/rpc/get_my_role' && state.role === 'both') {
+      const ownerRow = { role: 'owner', status: 'active', business_id: OWNER, business_name: owner.name, name: owner.name, vehicle_rates: owner.vehicle_rates }
+      const driverRow = { role: 'driver', status: state.status, business_id: 'other-business', business_name: 'Lakshmi Farms', name: 'Srinivas', vehicle_rates: [{ type: 'Harvester', hourly_rate: 2000 }] }
+      return route.fulfill({ status: 200, json: mode === 'driver' ? [driverRow, ownerRow] : [ownerRow, driverRow] })
+    }
     if (url.pathname === '/auth/v1/user') data = user
     else if (url.pathname === '/rest/v1/rpc/claim_driver_invite') {
       if (state.claimFails) return route.fulfill({ status: 503, json: { message: 'Temporarily unavailable' } })
@@ -111,6 +120,33 @@ test('a revoked driver is blocked on their next dashboard request', async ({ pag
   state.status = 'revoked'
   await page.getByRole('button', { name: 'My jobs', exact: true }).click()
   await expect(page.getByText('Your access has been removed.', { exact: true })).toBeVisible()
+})
+
+test('an owner who is also a driver chooses a side, switches, and the choice is remembered', async ({ page }) => {
+  const state = await setup(page, { role: 'both' })
+  await page.goto('/')
+  await expect(page.getByText('How do you want to open Kisan Go?')).toBeVisible()
+  await page.getByRole('button', { name: 'Driver for Lakshmi Farms' }).click()
+  await page.getByRole('button', { name: 'Customers' }).click()
+  await expect(page.getByText('Ramulu')).toBeVisible()
+  expect(state.modes.list_customers_basic).toBe('driver')
+  await expect(page.getByRole('button', { name: 'Drivers' })).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Profile' }).click()
+  await page.getByRole('button', { name: 'Switch to my business' }).click()
+  await expect(page.getByRole('button', { name: 'Drivers' })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Drivers' })).toBeVisible()
+  await expect(page.getByText('How do you want to open Kisan Go?')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Profile' }).click()
+  await expect(page.getByRole('button', { name: 'Switch to driver for Lakshmi Farms' })).toBeVisible()
+})
+
+test('an owner opening a driver link with their own number goes straight to the driver side', async ({ page }) => {
+  await setup(page, { role: 'both' })
+  await page.goto('/?invite=9848000001')
+  await expect(page.getByRole('button', { name: 'My jobs' })).toBeVisible()
+  await expect(page.getByText('How do you want to open Kisan Go?')).toHaveCount(0)
 })
 
 test('driver invite pre-fills the login phone', async ({ page }) => {

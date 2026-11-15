@@ -9,7 +9,7 @@ import TimerScreen from './pages/TimerScreen'
 import ManageDrivers from './pages/ManageDrivers'
 import OwnerProfile from './pages/OwnerProfile'
 import DriverApp from './pages/driver/DriverApp'
-import { loadMyRole } from './lib/roles'
+import { loadMyRole, setActingAs, savedMode, saveMode } from './lib/roles'
 import { readInvitePhone, clearInviteParam } from './lib/invite'
 import { localDigits, formatPhone } from './lib/phone'
 import CustomerPage from './pages/CustomerPage'
@@ -87,15 +87,32 @@ function CenteredMessage({ title, body, actions }) {
 }
 
 // Shown to a driver whose owner removed them, on login or mid-session.
-function AccessRemoved({ onSignOut }) {
+// Someone who also owns a business can go back to it.
+function AccessRemoved({ onSignOut, onOpenOwner }) {
   const { t } = useTrans()
   return (
     <CenteredMessage
       title={t('accessRemovedTitle')}
       body={t('accessRemovedBody')}
-      actions={
-        <button onClick={onSignOut} className={PRIMARY}>{t('signOut')}</button>
-      }
+      actions={<>
+        {onOpenOwner && <button onClick={onOpenOwner} className={PRIMARY}>{t('openMyBusiness')}</button>}
+        <button onClick={onSignOut} className={onOpenOwner ? SECONDARY : PRIMARY}>{t('signOut')}</button>
+      </>}
+    />
+  )
+}
+
+// An owner who is also a driver for another business, first time on this phone.
+function RoleChooser({ business, onChoose }) {
+  const { t } = useTrans()
+  return (
+    <CenteredMessage
+      title={t('chooseRoleTitle')}
+      body={t('chooseRoleBody', { business })}
+      actions={<>
+        <button onClick={() => onChoose('owner')} className={PRIMARY}>{t('openAsOwner')}</button>
+        <button onClick={() => onChoose('driver')} className={SECONDARY}>{t('openAsDriver', { business })}</button>
+      </>}
     />
   )
 }
@@ -181,6 +198,14 @@ function AccountApp({ session }) {
   const [me, setMe] = useState(undefined)
   const [invitedPhone, setInvitedPhone] = useState(readInvitePhone)
   const roleRequest = useRef(0)
+  const userId = session.user.id
+  // Opening a driver link with your own number means "open the driver side",
+  // even for someone who also owns a business. Otherwise use the side they
+  // last chose on this phone (owner by default).
+  const [fromInvite] = useState(() => readInvitePhone() === localDigits(session.user.phone))
+  const preferred = useRef(fromInvite ? 'driver' : savedMode(userId) ?? 'owner')
+  const [modeChosen, setModeChosen] = useState(() => fromInvite || savedMode(userId) !== null)
+  useEffect(() => { if (fromInvite) saveMode(userId, 'driver') }, [fromInvite, userId])
   const [accessRemoved, setAccessRemoved] = useState(false)
   const [ownerSignup, setOwnerSignup] = useState(false) // came by driver link, chose owner sign-up
   const [activeJob, setActiveJob] = useState(null)  // { customer } | null
@@ -200,13 +225,14 @@ function AccountApp({ session }) {
     setMe(undefined)
     setAccessRemoved(false)
     try {
-      const role = await loadMyRole()
+      const role = await loadMyRole(preferred.current)
       if (request !== roleRequest.current) return
+      setActingAs(role?.role)
       if (role?.role === 'owner') {
         const { data, error } = await supabase.from('owners').select('*').eq('id', role.business_id).maybeSingle()
         if (error) throw error
         if (request !== roleRequest.current) return
-        setMe(data ? { role: 'owner', owner: data } : null)
+        setMe(data ? { role: 'owner', owner: data, other: role.other } : null)
         if (data) dismissInvite()
       } else {
         setMe(role)
@@ -227,18 +253,39 @@ function AccountApp({ session }) {
 
   const signOut = () => supabase.auth.signOut()
 
+  // Owner who is also a driver: open the other side and remember the choice.
+  function switchRole(mode) {
+    preferred.current = mode
+    saveMode(userId, mode)
+    setModeChosen(true)
+    setActiveJob(null)
+    setOpenCustomerId(null)
+    setTabOptions({})
+    setActiveTab('home')
+    resolveRole()
+  }
+
   if (mismatch) return <InviteAccountMismatch phone={session.user.phone} invitedPhone={invitedPhone} onSignOut={signOut} onContinue={dismissInvite} />
   if (me === undefined) return <Loading />
   if (me?.error) return <RoleError onRetry={resolveRole} onSignOut={signOut} />
 
+  const roles = me ? [me, me.other].filter(Boolean) : []
+  const driverSide = roles.find(r => r.role === 'driver' && r.status === 'active')
+  const hasOwnerSide = roles.some(r => r.role === 'owner')
+  if (driverSide && hasOwnerSide && !modeChosen) {
+    return <RoleChooser business={driverSide.business_name} onChoose={switchRole} />
+  }
+
   if (me?.role === 'driver') {
-    if (me.status !== 'active' || accessRemoved) return <AccessRemoved onSignOut={signOut} />
+    const openOwner = hasOwnerSide ? () => switchRole('owner') : undefined
+    if (me.status !== 'active' || accessRemoved) return <AccessRemoved onSignOut={signOut} onOpenOwner={openOwner} />
     return (
       <DriverApp
         me={me}
         phone={session.user.phone}
         onSignOut={signOut}
         onAccessRemoved={() => setAccessRemoved(true)}
+        onSwitchToOwner={openOwner}
       />
     )
   }
@@ -306,7 +353,14 @@ function AccountApp({ session }) {
       {activeTab === 'earnings' && <EarningsScreen {...sharedProps} />}
       {activeTab === 'customers' && <Dashboard key={tabOptions.filter ?? 'all'} {...sharedProps} initialFilter={tabOptions.filter} />}
       {activeTab === 'drivers' && <ManageDrivers {...sharedProps} />}
-      {activeTab === 'profile' && <OwnerProfile {...sharedProps} onSaved={owner => setMe({ role: 'owner', owner })} />}
+      {activeTab === 'profile' && (
+        <OwnerProfile
+          {...sharedProps}
+          onSaved={owner => setMe(prev => ({ ...prev, role: 'owner', owner }))}
+          driverFor={driverSide?.business_name}
+          onSwitchToDriver={driverSide ? () => switchRole('driver') : undefined}
+        />
+      )}
       <InstallBanner />
     </>
   )

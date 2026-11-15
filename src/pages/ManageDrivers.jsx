@@ -17,6 +17,7 @@ import { Sheet, Field, PhoneField, PrimaryButton, PageHeader, Spinner, ErrorCard
 //           screen; access still comes from the verified phone.
 //   revoke: revoke_driver(p_membership_id) → takes effect on the driver's next request
 const ADD_ERRORS = {
+  phone_is_self: 'driverPhoneIsSelf',
   phone_is_owner: 'driverPhoneIsOwner',
   phone_in_use: 'driverPhoneInUse',
   invalid_phone: 'validPhoneErr',
