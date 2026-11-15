@@ -68,13 +68,15 @@ The new migration is `20261115090000_secure_invites_owner_profile.sql`. Apply al
 missing migrations in order. It hardens the shared invite-linking helper,
 validates owner profile writes, and synchronizes owner membership names.
 
-**Verify the project before any remote operation.** During the November 15
-handover, the saved CLI link pointed to production while the local frontend
-pointed to development, and the saved CLI access token was invalid.
+On November 15, **kisan-go-dev** (`ctsohixfzmbzmbahvhda`) was restored from its
+paused state and the CLI was explicitly relinked to it after reauthentication.
+All four repository migrations are applied there. The hosted pgTAP suite passed
+all 28 assertions and rolled back its fixtures. The `send-whatsapp` function was
+deployed to dev; the existing `firebase-login` deployment was retained.
 
-Authenticate with `supabase login`, explicitly link **kisan-go-dev** with
-`supabase link --project-ref ctsohixfzmbzmbahvhda`, review pending migrations,
-then apply and run the database tests there. Never use an unchecked saved link.
+**Verify the project before any remote operation.** Explicitly target dev with
+`--project-ref ctsohixfzmbzmbahvhda`; never use an unchecked saved link. Run database
+CLI commands sequentially to avoid competing temporary login credentials.
 Keep the original roles migration unchanged because another client shares its
 migration history. Production rollout must include the roles and claim migrations
 before deploying the frontend; check for duplicate customer phones first as
@@ -82,9 +84,12 @@ described in the roles migration.
 
 `firebase-login` requires the server secret `FIREBASE_PROJECT_ID` and disabled
 gateway JWT verification (configured in `supabase/config.toml`). Firebase must
-authorize the website domain. `send-whatsapp` needs its Twilio secrets and checks
-the caller itself. Confirm SMS login and bill delivery with test accounts before
-release. No remote migration or deployment is performed by the test commands.
+authorize the website domain. Dev currently has `FIREBASE_PROJECT_ID`, but lacks
+the Twilio secrets needed for automatic bill delivery. `send-whatsapp` checks
+the caller itself. Confirm real SMS login and bill delivery with test accounts
+before release. Production and the public Vercel frontend have not been updated
+by this rollout. No remote migration or deployment is performed by the npm test
+commands.
 
 ## Android
 

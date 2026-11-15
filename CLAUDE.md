@@ -210,7 +210,7 @@ Files: `capacitor.config.json` (new), `android/` (generated native project), `sr
 - Firebase phone login still uses the web reCAPTCHA flow; `localhost` must be in Firebase → Authentication → Settings → Authorized domains.
 - iOS not added yet (needs full Xcode + CocoaPods; Firebase web reCAPTCHA won't work under iOS's `capacitor://` scheme — would need native Firebase auth).
 
-### Phase 10 — Owner / driver roles 🚧 (code done on branch `roles`; not yet applied/tested on kisan-go-dev)
+### Phase 10 — Owner / driver roles (applied and database-tested on kisan-go-dev November 15)
 Reuses the Android repo's Phase 2 database objects unchanged (`supabase/migrations/20261027094210_roles_and_memberships.sql`, copied here byte-for-byte so migration history matches kisan-go-dev). Only new DB object: `claim_driver_invite()` (`20261112090000_claim_driver_invite.sql`).
 
 - Local dev uses `.env.local` → kisan-go-dev (`ctsohixfzmbzmbahvhda`). `.env` is production — never point migrations or deploys at it.
@@ -234,7 +234,7 @@ Reuses the Android repo's Phase 2 database objects unchanged (`supabase/migratio
 - Driver vehicles/access refresh on app visibility, every 30 visible seconds, and before starting work. Timer previews follow refreshed rates; stored bills retain historical rates.
 - Invite links can be shared again for active drivers. Invalid/local URLs show a visible explanation. Production web URL is https://kisan-go.vercel.app; native builds need VITE_PUBLIC_APP_URL for the deployment using the same database.
 - Added `npm test` (isolated PostgreSQL/PGlite migration and domain tests) and `npm run test:browser` (mobile Chrome, mocked Supabase/session data). Real Firebase SMS and Twilio delivery still need deployment checks.
-- Deployment is NOT completed: saved Supabase CLI login is invalid. Also, `supabase/.temp/linked-project.json` currently points to PRODUCTION (`pvcqrshhgfafkmfxigig`), even though `.env.local` points to dev. Explicitly target/link dev after reauthentication; never trust the existing CLI link.
+- November 15 DEV rollout: reauthenticated, restored paused `ctsohixfzmbzmbahvhda`, explicitly relinked CLI to dev, and applied all three missing migrations (roles, claim, profile validation). The hosted pgTAP suite passed 28 assertions with fixtures rolled back. `send-whatsapp` deployed to dev; existing `firebase-login` retained. Dev lacks Twilio secrets, so automatic WhatsApp delivery remains unverified/unconfigured. Real Firebase SMS still needs an end-to-end check. Production and Vercel were not deployed. Explicitly target dev on future commands; run database CLI commands sequentially to avoid temporary-login collisions.
 
 ## Rules
 - All UI must follow `kisan-design/DESIGN.md` (colours, fonts, spacing,
@@ -251,5 +251,3 @@ Reuses the Android repo's Phase 2 database objects unchanged (`supabase/migratio
   WhatsApp sends get a Retry button
 - Write SQL migrations for any schema change; don't edit tables
   ad hoc
-
-  
