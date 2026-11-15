@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
+import { useTrans } from '../context/LangContext'
 
 // Owner screens: who did a job, as "Harvester 1 · Ravi". The driver name
 // comes from work_records.created_by and this business's driver
 // memberships (policy memberships_owner_read). Jobs the owner recorded
-// show only the vehicle — no extra text.
+// themselves say "You".
 export function useWorkLabel(ownerId) {
+  const { t } = useTrans()
   const [names, setNames] = useState({})
 
   useEffect(() => {
@@ -26,9 +28,10 @@ export function useWorkLabel(ownerId) {
   }, [ownerId])
 
   const driverOf = useCallback((record) => {
-    if (!record.created_by || record.created_by === ownerId) return null
+    // Records from before drivers existed were backfilled with created_by = owner.
+    if (!record.created_by || record.created_by === ownerId) return t('you')
     return names[record.created_by] ?? null
-  }, [names, ownerId])
+  }, [names, ownerId, t])
 
   const workLabel = useCallback((record) => {
     const driver = driverOf(record)
