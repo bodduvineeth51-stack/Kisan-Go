@@ -5,7 +5,7 @@ import { formatMoney, formatHours } from '../lib/format'
 import BottomNav from '../components/BottomNav'
 import AddButton from '../components/AddButton'
 import Avatar from '../components/Avatar'
-import { CustomerForm } from './Dashboard'
+import CustomerForm from '../components/CustomerForm'
 import { useTrans } from '../context/LangContext'
 
 function Logo() {
@@ -60,7 +60,7 @@ function StatusChip({ record, customer }) {
   return <span className={`${base} bg-due-bg text-due`}>{t('billNotSent')}</span>
 }
 
-export default function Home({ owner, activeTab, onTabChange }) {
+export default function Home({ owner, activeTab, onTabChange, onOpenCustomer }) {
   const { t, lang } = useTrans()
   const [customers, setCustomers]     = useState([])
   const [workRecords, setWorkRecords] = useState([])
@@ -178,7 +178,7 @@ export default function Home({ owner, activeTab, onTabChange }) {
         {/* Shortcut tiles */}
         <div className="grid grid-cols-3 gap-2.5">
           <Tile icon={UserPlus} iconClass="bg-mint-100 text-primary" label={t('tileAddCustomer')} onClick={() => setShowForm(true)} />
-          <Tile icon={Wallet} iconClass="bg-amber-bg text-amber" label={t('tileGotPayment')} onClick={() => onTabChange('customers')} />
+          <Tile icon={Wallet} iconClass="bg-amber-bg text-amber" label={t('tileGotPayment')} onClick={() => onTabChange('customers', { filter: 'due' })} />
           <Tile icon={MessageCircle} iconClass="bg-blue-bg text-blue" label={t('tileSendReminders')} onClick={() => onTabChange('earnings')} />
         </div>
 
@@ -208,7 +208,7 @@ export default function Home({ owner, activeTab, onTabChange }) {
             return (
               <button
                 key={r.id}
-                onClick={() => onTabChange('customers')}
+                onClick={() => c && onOpenCustomer(c)}
                 className="flex items-center gap-3 rounded-[18px] bg-surface px-3.5 py-2.5 text-left text-ink shadow-card"
               >
                 <Avatar id={r.customer_id} name={c?.name} />
@@ -236,8 +236,8 @@ export default function Home({ owner, activeTab, onTabChange }) {
           ownerId={owner.id}
           onClose={() => setShowForm(false)}
           onSaved={(saved) => {
-            setCustomers((prev) => [saved, ...prev])
             setShowForm(false)
+            onOpenCustomer(saved)
           }}
         />
       )}

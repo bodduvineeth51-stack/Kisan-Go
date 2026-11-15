@@ -3,7 +3,8 @@ import { supabase } from './lib/supabaseClient'
 import Login from './pages/Login'
 import ProfileSetup from './pages/ProfileSetup'
 import Home from './pages/Home'
-import Dashboard from './pages/Dashboard'
+import Customers from './pages/Customers'
+import CustomerPage from './pages/CustomerPage'
 import EarningsScreen from './pages/EarningsScreen'
 import TimerScreen from './pages/TimerScreen'
 
@@ -67,8 +68,10 @@ function Loading() {
 export default function App() {
   const [session, setSession] = useState(undefined) // undefined = loading, null = signed out
   const [owner, setOwner] = useState(undefined)
-  const [activeJob, setActiveJob] = useState(null)  // { customer } | null
+  // Full-screen layer over the tabs: { name: 'customer' | 'timer', customer } | null
+  const [view, setView] = useState(null)
   const [activeTab, setActiveTab] = useState('home') // 'home' | 'customers' | 'earnings'
+  const [customerFilter, setCustomerFilter] = useState('all')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -108,13 +111,24 @@ export default function App() {
       />
     )
   }
-  if (activeJob) {
+  if (view?.name === 'timer') {
     return (
       <TimerScreen
-        customer={activeJob.customer}
+        customer={view.customer}
         owner={owner}
-        onComplete={() => setActiveJob(null)}
-        onBack={() => setActiveJob(null)}
+        onComplete={() => setView({ name: 'customer', customer: view.customer })}
+        onBack={() => setView({ name: 'customer', customer: view.customer })}
+      />
+    )
+  }
+  if (view?.name === 'customer') {
+    return (
+      <CustomerPage
+        key={view.customer.id}
+        owner={owner}
+        customer={view.customer}
+        onBack={() => setView(null)}
+        onStartWork={(customer) => setView({ name: 'timer', customer })}
       />
     )
   }
@@ -122,15 +136,17 @@ export default function App() {
     owner,
     onSignOut: () => supabase.auth.signOut(),
     activeTab,
-    onTabChange: setActiveTab,
+    onTabChange: (tab, opts = {}) => {
+      setCustomerFilter(opts.filter ?? 'all')
+      setActiveTab(tab)
+    },
+    onOpenCustomer: (customer) => setView({ name: 'customer', customer }),
   }
   return (
     <>
       {activeTab === 'home' && <Home {...sharedProps} />}
       {activeTab === 'earnings' && <EarningsScreen {...sharedProps} />}
-      {activeTab === 'customers' && (
-        <Dashboard {...sharedProps} onStartJob={(customer) => setActiveJob({ customer })} />
-      )}
+      {activeTab === 'customers' && <Customers {...sharedProps} initialFilter={customerFilter} />}
       <InstallBanner />
     </>
   )
