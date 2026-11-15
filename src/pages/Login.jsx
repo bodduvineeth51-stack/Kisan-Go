@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { RecaptchaVerifier, signInWithPhoneNumber, signOut } from 'firebase/auth'
 import { supabase } from '../lib/supabaseClient'
 import { getFirebaseAuth } from '../lib/firebaseClient'
@@ -29,6 +29,15 @@ export default function Login() {
   const recaptchaEl = useRef(null)
   const verifier = useRef(null)
   const confirmation = useRef(null)
+  const verifiedUser = useRef(null)
+  const [resendIn, setResendIn] = useState(0)
+
+  useEffect(() => () => { verifier.current?.clear() }, [])
+  useEffect(() => {
+    if (!resendIn) return
+    const timer = setTimeout(() => setResendIn(n => Math.max(0, n - 1)), 1000)
+    return () => clearTimeout(timer)
+  }, [resendIn])
 
   const e164Phone = toE164(phone)
 
@@ -43,13 +52,18 @@ export default function Login() {
   // function then swaps the Firebase ID token for a Supabase session.
   async function handleSendOtp(e) {
     e.preventDefault()
+    if (loading) return
     setError('')
     if (!e164Phone) { setError(t('invalidPhone')); return }
     setLoading(true)
     try {
       const auth = getFirebaseAuth()
-      verifier.current ??= new RecaptchaVerifier(auth, recaptchaEl.current, { size: 'invisible' })
+      verifier.current?.clear()
+      verifier.current = new RecaptchaVerifier(auth, recaptchaEl.current, { size: 'invisible' })
       confirmation.current = await signInWithPhoneNumber(auth, e164Phone, verifier.current)
+      verifiedUser.current = null
+      setOtp('')
+      setResendIn(60)
       setStep('otp')
     } catch (err) {
       // A used or failed reCAPTCHA can't be reused for the next attempt
@@ -63,11 +77,14 @@ export default function Login() {
 
   async function handleVerifyOtp(e) {
     e.preventDefault()
+    if (loading) return
     setError('')
     if (!/^\d{6}$/.test(otp)) { setError(t('invalidOtp')); return }
     setLoading(true)
     try {
-      const { user } = await confirmation.current.confirm(otp)
+      // If the session exchange fails, retry it without consuming the SMS twice.
+      const user = verifiedUser.current ?? (await confirmation.current.confirm(otp)).user
+      verifiedUser.current = user
       const idToken = await user.getIdToken()
       const { data, error: fnError } = await supabase.functions.invoke('firebase-login', {
         body: { id_token: idToken },
@@ -80,9 +97,10 @@ export default function Login() {
       if (sessionError) throw sessionError
       // Supabase holds the session from here on. App now runs
       // claim_driver_invite and get_my_role before it picks a screen.
-      await signOut(getFirebaseAuth())
+      await signOut(getFirebaseAuth()).catch(() => {})
     } catch (err) {
       showError(err)
+    } finally {
       setLoading(false)
     }
   }
@@ -119,6 +137,7 @@ export default function Login() {
                   maxLength={13}
                   placeholder="9876543210"
                   value={phone}
+                  disabled={loading}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                   className="w-full rounded-lg px-2 py-2.5 outline-none"
                 />
@@ -132,7 +151,6 @@ export default function Login() {
             >
               {loading ? t('sending') : t('sendOtp')}
             </button>
-            {!invitedPhone && <p className="text-center text-xs text-gray-400">{t('testHint')}</p>}
           </form>
         )}
 
@@ -146,9 +164,11 @@ export default function Login() {
                 id="otp"
                 type="text"
                 inputMode="numeric"
+                autoComplete="one-time-code"
                 maxLength={6}
                 placeholder="123456"
                 value={otp}
+                disabled={loading}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 tracking-widest outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600"
               />
@@ -163,7 +183,16 @@ export default function Login() {
             </button>
             <button
               type="button"
-              onClick={() => { setStep('phone'); setOtp(''); setError('') }}
+              disabled={loading || resendIn > 0}
+              onClick={handleSendOtp}
+              className="min-h-11 w-full text-center text-sm font-bold text-primary disabled:text-muted"
+            >
+              {resendIn > 0 ? t('resendIn', { n: resendIn }) : t('resendOtp')}
+            </button>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => { setStep('phone'); setOtp(''); setError(''); verifiedUser.current = null; confirmation.current = null; verifier.current?.clear(); verifier.current = null }}
               className="w-full text-center text-sm text-gray-500 hover:text-gray-700"
             >
               {t('changePhone')}

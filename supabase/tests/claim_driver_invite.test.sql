@@ -72,9 +72,13 @@ select is(pg_temp.as_user('00000000-0000-4000-b000-000000000004', $$select publi
   '0', 'claim: phone not verified (phone_confirmed_at null) → not linked');
 select is((select status from public.memberships where phone = '5551110004'),
   'invited', 'claim: unverified invite stays invited');
+select is(pg_temp.as_user('00000000-0000-4000-b000-000000000004', $$select count(*)::text from public.get_my_role()$$),
+  '0', 'routing: get_my_role cannot bypass phone verification');
 
 select is(pg_temp.as_user('00000000-0000-4000-b000-000000000005', $$select public.claim_driver_invite()::text$$),
   '0', 'claim: non-+91 phone → not linked');
+select is(pg_temp.as_user('00000000-0000-4000-b000-000000000005', $$select count(*)::text from public.get_my_role()$$),
+  '0', 'routing: get_my_role cannot link a foreign number by its last 10 digits');
 
 select is(pg_temp.as_user('00000000-0000-4000-b000-000000000001', $$select public.claim_driver_invite()::text$$),
   '0', 'claim: an owner is never linked as a driver');
@@ -121,6 +125,22 @@ select is(pg_temp.as_user('00000000-0000-4000-b000-000000000001',
 
 
 -- 4. Revoke ------------------------------------------------------------------------
+select pg_temp.as_user('00000000-0000-4000-b000-000000000001', $$
+  update public.owners set name = 'Updated Owner',
+    vehicle_rates = '[{"type":"Tractor","hourly_rate":1500},{"type":"JCB","hourly_rate":2500}]'
+  where id = '00000000-0000-4000-b000-000000000001' returning name $$);
+select is(pg_temp.as_user('00000000-0000-4000-b000-000000000002', $$select business_name from public.get_my_role()$$),
+  'Updated Owner', 'profile: driver sees the updated owner name');
+select is(pg_temp.as_user('00000000-0000-4000-b000-000000000002', $$select jsonb_array_length(vehicle_rates)::text from public.get_my_role()$$),
+  '2', 'profile: driver sees the newly added vehicle');
+select is((select amount::text from public.work_records where created_by = '00000000-0000-4000-b000-000000000002'),
+  '1800', 'profile: editing rates never changes a saved bill');
+select throws_like(
+  $$select pg_temp.as_user('00000000-0000-4000-b000-000000000001', $q$
+    update public.owners set vehicle_rates = '[{"type":"Tractor","hourly_rate":0}]'
+    where id = '00000000-0000-4000-b000-000000000001' returning name $q$)$$,
+  '%invalid_rate%', 'profile: database rejects a zero rate');
+
 select pg_temp.as_user('00000000-0000-4000-b000-000000000001',
   $$select count(*)::text from public.revoke_driver((select id from public.memberships where phone = '5551110002'))$$);
 select is(pg_temp.as_user('00000000-0000-4000-b000-000000000002', $$select role || '/' || status from public.get_my_role()$$),

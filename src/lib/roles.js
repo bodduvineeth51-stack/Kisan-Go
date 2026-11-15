@@ -10,8 +10,8 @@ import { supabase } from './supabaseClient'
 // server; nothing about the phone is sent from here.
 export async function loadMyRole() {
   const claim = await supabase.rpc('claim_driver_invite')
-  // Not fatal: get_my_role links pending invites as well.
-  if (claim.error) console.error('[roles] claim_driver_invite failed:', claim.error)
+  // Never turn a failed invitation claim into an accidental owner sign-up.
+  if (claim.error) throw claim.error
 
   const { data, error } = await supabase.rpc('get_my_role')
   if (error) throw error
@@ -47,6 +47,7 @@ export async function driverRpc(fn, args, { checkStatus = false } = {}) {
   if (isNotAllowed(res.error)) throw new AccessRemovedError()
   if (roleRes) {
     if (roleRes.error && isNotAllowed(roleRes.error)) throw new AccessRemovedError()
+    if (roleRes.error) throw roleRes.error
     const me = roleRes.data?.[0]
     if (!roleRes.error && (!me || me.role !== 'driver' || me.status !== 'active')) {
       throw new AccessRemovedError()

@@ -224,6 +224,18 @@ Reuses the Android repo's Phase 2 database objects unchanged (`supabase/migratio
 - DB tests: `supabase/tests/claim_driver_invite.test.sql` (`supabase test db --linked`, dev only).
 - Production needs the Phase 2 + claim migrations BEFORE this branch is deployed there (`get_my_role` / `claim_driver_invite` don't exist on prod yet).
 
+### Phase 11 — Owner profile and driver invitation completion (November 15, Codex)
+
+- Owner Profile tab: editable owner name, read-only login phone, editable vehicle names/rates, add/remove vehicles (keep at least one). `src/lib/vehicles.js` shares vehicle choices and validation with onboarding; JCB is included.
+- `20261115090000_secure_invites_owner_profile.sql` validates profile writes, synchronizes owner membership names, and fixes `private.link_invites` so neither `get_my_role` nor service-role linking bypasses verified Indian-phone checks. Do not modify the previously shared roles migration.
+- App account state is keyed by auth UID; stale role requests are ignored. Wrong-account invitation links offer account switching before consuming the invitation. Claim failures show Retry rather than owner signup.
+- Login supports OTP resend/cooldown and retries the session exchange without consuming an already-verified code again. The public test-number hint has been removed.
+- Driver Home dashboard shows their own recent jobs and today's hours/job count, with a customer/start-work shortcut. No business earnings or payment data is shown.
+- Driver vehicles/access refresh on app visibility, every 30 visible seconds, and before starting work. Timer previews follow refreshed rates; stored bills retain historical rates.
+- Invite links can be shared again for active drivers. Invalid/local URLs show a visible explanation. Production web URL is https://kisan-go.vercel.app; native builds need VITE_PUBLIC_APP_URL for the deployment using the same database.
+- Added `npm test` (isolated PostgreSQL/PGlite migration and domain tests) and `npm run test:browser` (mobile Chrome, mocked Supabase/session data). Real Firebase SMS and Twilio delivery still need deployment checks.
+- Deployment is NOT completed: saved Supabase CLI login is invalid. Also, `supabase/.temp/linked-project.json` currently points to PRODUCTION (`pvcqrshhgfafkmfxigig`), even though `.env.local` points to dev. Explicitly target/link dev after reauthentication; never trust the existing CLI link.
+
 ## Rules
 - All UI must follow `kisan-design/DESIGN.md` (colours, fonts, spacing,
   shapes, icons) and match the reference screens in `kisan-design/screens/`.

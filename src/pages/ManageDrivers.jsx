@@ -118,6 +118,12 @@ function ShareLinkSheet({ driver, ownerName, onClose }) {
   const link = driverInviteLink(driver.phone)
   const message = t('inviteMessage', { name: driver.name, owner: ownerName, link })
 
+  if (!link) return (
+    <Sheet title={t('sendAccessLinkTitle', { name: driver.name })} onClose={onClose}>
+      <p role="alert" className="rounded-2xl bg-due-bg p-4 text-sm font-semibold text-due">{t('inviteUrlUnavailable')}</p>
+    </Sheet>
+  )
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(link)
@@ -292,7 +298,7 @@ export default function ManageDrivers({ owner, onSignOut, activeTab, onTabChange
                 </button>
               )}
             </div>
-            {d.status === 'invited' && (
+            {d.status !== 'revoked' && (
               <button
                 onClick={() => setSharing(d)}
                 className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-mint-100 text-sm font-extrabold text-primary active:scale-[0.98]"

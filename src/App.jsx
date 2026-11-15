@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabaseClient'
 import Login from './pages/Login'
 import ProfileSetup from './pages/ProfileSetup'
@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard'
 import EarningsScreen from './pages/EarningsScreen'
 import TimerScreen from './pages/TimerScreen'
 import ManageDrivers from './pages/ManageDrivers'
+import OwnerProfile from './pages/OwnerProfile'
 import DriverApp from './pages/driver/DriverApp'
 import { loadMyRole } from './lib/roles'
 import { readInvitePhone, clearInviteParam } from './lib/invite'
@@ -149,64 +150,83 @@ function RoleError({ onRetry, onSignOut }) {
 }
 
 export default function App() {
-  const [session, setSession] = useState(undefined) // undefined = loading, null = signed out
+  const [session, setSession] = useState(undefined)
+  const [authError, setAuthError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+  useEffect(() => {
+    let active = true
+    let authEventReceived = false
+    setAuthError(false)
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => {
+      authEventReceived = true
+      if (active) { setSession(next); setAuthError(false) }
+    })
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!active || authEventReceived) return
+      if (error) setAuthError(true)
+      else setSession(data.session)
+    }).catch(() => { if (active && !authEventReceived) setAuthError(true) })
+    return () => { active = false; listener.subscription.unsubscribe() }
+  }, [attempt])
+
+  if (authError) return <RoleError onRetry={() => setAttempt(n => n + 1)} onSignOut={() => supabase.auth.signOut()} />
+  if (session === undefined) return <Loading />
+  if (session === null) return <Login />
+  // A different account always gets fresh navigation and role state.
+  return <AccountApp key={session.user.id} session={session} />
+}
+
+function AccountApp({ session }) {
   // undefined = loading, null = no business yet, { error } = failed,
   // { role: 'owner', owner } or { role: 'driver', status, … } from get_my_role
   const [me, setMe] = useState(undefined)
+  const [invitedPhone, setInvitedPhone] = useState(readInvitePhone)
+  const roleRequest = useRef(0)
   const [accessRemoved, setAccessRemoved] = useState(false)
   const [ownerSignup, setOwnerSignup] = useState(false) // came by driver link, chose owner sign-up
   const [activeJob, setActiveJob] = useState(null)  // { customer } | null
   const [activeTab, setActiveTab] = useState('home') // 'home' | 'customers' | 'earnings' | 'drivers'
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession)
-    })
-    return () => listener.subscription.unsubscribe()
+  const mismatch = Boolean(invitedPhone && localDigits(session.user.phone) !== invitedPhone)
+
+  const dismissInvite = useCallback(() => {
+    clearInviteParam()
+    setInvitedPhone(null)
   }, [])
 
-  // Re-run only when the logged-in user changes, not on every token refresh,
-  // so an hourly refresh never throws away a running timer.
-  const sessionLoaded = session !== undefined
-  const userId = session?.user?.id
-
   const resolveRole = useCallback(async () => {
+    const request = ++roleRequest.current
     setMe(undefined)
     setAccessRemoved(false)
     try {
       const role = await loadMyRole()
+      if (request !== roleRequest.current) return
       if (role?.role === 'owner') {
         const { data, error } = await supabase.from('owners').select('*').eq('id', role.business_id).maybeSingle()
         if (error) throw error
+        if (request !== roleRequest.current) return
         setMe(data ? { role: 'owner', owner: data } : null)
-        if (data) clearInviteParam()
+        if (data) dismissInvite()
       } else {
         setMe(role)
-        if (role) clearInviteParam()
+        if (role) dismissInvite()
       }
     } catch (err) {
+      if (request !== roleRequest.current) return
       console.error('[app] could not load role:', err)
       setMe({ error: err })
     }
-  }, [])
+  }, [dismissInvite])
 
   useEffect(() => {
-    if (!sessionLoaded) return
-    if (!userId) {
-      setMe(null)
-      setActiveJob(null)
-      setActiveTab('home')
-      setOwnerSignup(false)
-      return
-    }
+    if (mismatch) return
     resolveRole()
-  }, [sessionLoaded, userId, resolveRole])
+    return () => { roleRequest.current += 1 }
+  }, [mismatch, resolveRole])
 
   const signOut = () => supabase.auth.signOut()
 
-  if (session === undefined) return <Loading />
-  if (session === null) return <Login />
+  if (mismatch) return <InviteAccountMismatch phone={session.user.phone} invitedPhone={invitedPhone} onSignOut={signOut} onContinue={dismissInvite} />
   if (me === undefined) return <Loading />
   if (me?.error) return <RoleError onRetry={resolveRole} onSignOut={signOut} />
 
@@ -224,7 +244,6 @@ export default function App() {
 
   if (me === null) {
     // Arrived by a driver access link but no driver access was found.
-    const invitedPhone = readInvitePhone()
     if (invitedPhone && !ownerSignup) {
       return (
         <InviteNotFound
@@ -270,7 +289,18 @@ export default function App() {
         <Dashboard {...sharedProps} onStartJob={(customer) => setActiveJob({ customer })} />
       )}
       {activeTab === 'drivers' && <ManageDrivers {...sharedProps} />}
+      {activeTab === 'profile' && <OwnerProfile {...sharedProps} onSaved={owner => setMe({ role: 'owner', owner })} />}
       <InstallBanner />
     </>
   )
+}
+
+function InviteAccountMismatch({ phone, invitedPhone, onSignOut, onContinue }) {
+  const { t } = useTrans()
+  return <CenteredMessage title={t('inviteWrongAccount')}
+    body={t('inviteNotFoundMismatch', { invited: formatPhone(invitedPhone), phone: formatPhone(phone) })}
+    actions={<>
+      <button onClick={onSignOut} className="min-h-14 rounded-2xl bg-primary font-extrabold text-white">{t('switchAccount')}</button>
+      <button onClick={onContinue} className="min-h-12 rounded-2xl border border-border font-bold text-ink">{t('continueMyAccount')}</button>
+    </>} />
 }

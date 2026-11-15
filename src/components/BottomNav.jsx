@@ -14,7 +14,7 @@ const ALL_TABS = [
 // Floating bottom bar (DESIGN.md → "Floating bottom bar").
 // `tabs` limits which tabs show — More is hidden until its screen exists.
 // Default = owner tabs. Drivers pass DRIVER_TABS (customers, my jobs, profile).
-export default function BottomNav({ active, onChange, tabs = ['home', 'customers', 'earnings', 'drivers'] }) {
+export default function BottomNav({ active, onChange, tabs = ['home', 'customers', 'earnings', 'drivers', 'profile'] }) {
   const { t } = useTrans()
   const visible = ALL_TABS.filter((tab) => tabs.includes(tab.id))
 

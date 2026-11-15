@@ -58,7 +58,8 @@ export default function TimerScreen({
 }) {
   const { t, lang } = useTrans()
   const autoVehicle = vehicleRates.length === 1 ? vehicleRates[0] : null
-  const [vehicle, setVehicle] = useState(autoVehicle)
+  const [selectedVehicle, setVehicle] = useState(autoVehicle)
+  const vehicle = vehicleRates.find(v => v.type === selectedVehicle?.type) ?? null
   const [sessions, setSessions] = useState([])
   const [activeStart, setActiveStart] = useState(null)
   const [elapsed, setElapsed] = useState(0)
@@ -170,7 +171,7 @@ export default function TimerScreen({
 
   const { totalMins, totalHours } = calcTotals(sessions)
   const isRecording = activeStart !== null
-  const canSubmit = sessions.length > 0 && !isRecording && vehicle && submitPhase === null
+  const canSubmit = sessions.length > 0 && !isRecording && vehicle
 
   return (
     <div className="flex min-h-svh flex-col bg-gray-50">
@@ -242,7 +243,7 @@ export default function TimerScreen({
         {/* BIG START / STOP */}
         <button
           onClick={isRecording ? handleStop : handleStart}
-          disabled={!vehicle}
+          disabled={!vehicle || submitPhase !== null}
           className={`w-full rounded-3xl py-10 text-3xl font-black tracking-wide shadow-xl transition-transform active:scale-95 disabled:opacity-40 disabled:shadow-none ${
             isRecording
               ? 'bg-red-500 text-white hover:bg-red-600 shadow-red-200'

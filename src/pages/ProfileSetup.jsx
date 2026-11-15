@@ -3,11 +3,7 @@ import { ArrowLeft } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { useTrans, LangToggle } from '../context/LangContext'
 import { toE164 } from '../lib/phone'
-
-const VEHICLE_TYPES = [
-  'Tractor', 'Harvester', 'Rotavator', 'Trailer',
-  'Cultivator', 'Seed Drill', 'Sprayer', 'Thresher',
-]
+import { VEHICLE_TYPES, validateVehicles } from '../lib/vehicles'
 
 export default function ProfileSetup({ user, onComplete, onBack }) {
   const { t } = useTrans()
@@ -29,9 +25,8 @@ export default function ProfileSetup({ user, onComplete, onBack }) {
     if (!name.trim()) { setError(t('enterName')); return }
     if (selectedTypes.length === 0) { setError(t('selectVehicleErr')); return }
     const vehicleRates = selectedTypes.map((type) => ({ type, hourly_rate: Number(rates[type]) }))
-    if (vehicleRates.some((v) => !v.hourly_rate || v.hourly_rate <= 0)) {
-      setError(t('validRateErr')); return
-    }
+    const invalid = validateVehicles(vehicleRates)
+    if (invalid) { setError(t(invalid)); return }
     setLoading(true)
     const { error } = await supabase.from('owners').insert({
       id: user.id,
