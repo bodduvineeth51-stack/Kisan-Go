@@ -68,7 +68,7 @@ export default function EarningsScreen({ owner, activeTab, onTabChange, onOpenCu
               role="tab"
               aria-selected={period === id}
               onClick={() => setPeriod(id)}
-              className={`h-11 rounded-[14px] text-sm ${period === id ? 'bg-primary font-extrabold text-white' : 'font-semibold text-muted'}`}
+              className={`h-11 rounded-[14px] text-sm ${period === id ? 'bg-primary font-bold text-white' : 'font-semibold text-muted'}`}
             >
               {t(key)}
             </button>
@@ -78,25 +78,24 @@ export default function EarningsScreen({ owner, activeTab, onTabChange, onOpenCu
         {error && <ErrorCard message={error} onRetry={fetchAll} />}
 
         {/* Total earned */}
-        <div className="relative flex flex-col gap-3.5 overflow-hidden rounded-[26px] bg-primary p-5 text-white shadow-hero">
-          <div className="absolute -right-[50px] -top-[60px] h-[180px] w-[180px] rounded-full bg-circle-1 opacity-45" />
-          <div className="relative">
-            <p className="text-sm font-semibold text-mint-100">{t('totalEarned')}</p>
-            <p className="text-[42px] font-extrabold leading-[1.05] tracking-[-1.5px]">{loading ? '…' : formatMoney(totals.earned)}</p>
+        <div className="flex flex-col gap-3 rounded-[24px] bg-primary p-5 text-white shadow-hero">
+          <div>
+            <p className="text-sm font-semibold text-white/80">{t('totalEarned')}</p>
+            <p className="text-[40px] font-extrabold leading-tight tracking-[-1.2px]">{loading ? '…' : formatMoney(totals.earned)}</p>
           </div>
-          <div className="relative h-3 overflow-hidden rounded-md bg-due-bar">
-            <div className="h-full rounded-md bg-lime" style={{ width: `${paidPct}%` }} />
+          <div className="h-2 overflow-hidden rounded-full bg-white/20">
+            <div className="h-full rounded-full bg-lime" style={{ width: `${paidPct}%` }} />
           </div>
-          <div className="relative grid grid-cols-2 gap-2.5">
-            <div className="rounded-2xl bg-white/[0.14] px-3 py-2.5">
-              <p className="flex items-center gap-1.5 text-xs font-bold text-mint-100">
-                <span className="h-2.5 w-2.5 rounded-[3px] bg-lime" />{t('collectedLabel')}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="rounded-2xl bg-white/[0.12] px-3 py-2.5">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-white/80">
+                <span className="h-2 w-2 rounded-full bg-lime" />{t('collectedLabel')}
               </p>
               <p className="text-xl font-extrabold">{formatMoney(totals.collected)}</p>
             </div>
             <div className="rounded-2xl bg-surface px-3 py-2.5 text-due">
-              <p className="flex items-center gap-1.5 text-xs font-bold">
-                <span className="h-2.5 w-2.5 rounded-[3px] bg-due-bar" />{t('pendingLabel')}
+              <p className="flex items-center gap-1.5 text-xs font-semibold">
+                <span className="h-2 w-2 rounded-full bg-due-bar" />{t('pendingLabel')}
               </p>
               <p className="text-xl font-extrabold">{formatMoney(totals.pending)}</p>
             </div>
@@ -110,31 +109,35 @@ export default function EarningsScreen({ owner, activeTab, onTabChange, onOpenCu
           {!loading && !error && owers.length === 0 && (
             <p className="rounded-[18px] bg-surface px-4 py-6 text-center text-sm font-semibold text-muted shadow-card">{t('allPaidMsg')}</p>
           )}
-          {!loading && owers.map(({ customer, due, since }) => {
-            const days = daysSince(since)
-            const msg = t('reminderMessage', { name: customer.name, amount: formatMoney(due), owner: owner.name })
-            return (
-              <div key={customer.id} className="flex items-center gap-2.5 rounded-[18px] bg-surface py-2 pl-3.5 pr-2 shadow-card">
-                <button onClick={() => onOpenCustomer(customer)} className="flex min-w-0 flex-1 items-center gap-3 text-left text-ink">
-                  <Avatar id={customer.id} name={customer.name} size="sm" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-bold">{customer.name}</span>
-                    <span className="block text-xs font-semibold text-muted">{t('waitingDays', { n: days })}</span>
-                  </span>
-                  <span className="text-[15px] font-extrabold text-due">{formatMoney(due)}</span>
-                </button>
-                <a
-                  href={whatsappUrl(customer.phone, msg) ?? undefined}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={t('remindOnWhatsApp', { name: customer.name })}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-mint-100 text-primary"
-                >
-                  <MessageCircle size={20} strokeWidth={2.2} aria-hidden="true" />
-                </a>
-              </div>
-            )
-          })}
+          {!loading && owers.length > 0 && (
+            <div className="overflow-hidden rounded-[20px] bg-surface shadow-card">
+              {owers.map(({ customer, due, since }) => {
+                const days = daysSince(since)
+                const msg = t('reminderMessage', { name: customer.name, amount: formatMoney(due), owner: owner.name })
+                return (
+                  <div key={customer.id} className="flex items-center gap-2.5 border-b border-divider py-2 pl-3.5 pr-2 last:border-b-0">
+                    <button onClick={() => onOpenCustomer(customer)} className="flex min-h-12 min-w-0 flex-1 items-center gap-3 text-left text-ink">
+                      <Avatar name={customer.name} size="sm" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[15px] font-bold">{customer.name}</span>
+                        <span className="block text-xs font-medium text-muted">{t('waitingDays', { n: days })}</span>
+                      </span>
+                      <span className="text-[15px] font-extrabold text-due">{formatMoney(due)}</span>
+                    </button>
+                    <a
+                      href={whatsappUrl(customer.phone, msg) ?? undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={t('remindOnWhatsApp', { name: customer.name })}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-mint-50 text-primary"
+                    >
+                      <MessageCircle size={20} strokeWidth={2.2} aria-hidden="true" />
+                    </a>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 

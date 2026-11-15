@@ -11,11 +11,9 @@ export default function AddButton({ onClick, label, ariaLabel }) {
       <button
         onClick={onClick}
         aria-label={ariaLabel}
-        className="pointer-events-auto flex h-[58px] items-center gap-2 rounded-full bg-primary pl-4 pr-[22px] text-base font-extrabold text-white shadow-fab transition-transform active:scale-95"
+        className="pointer-events-auto flex h-14 items-center gap-1.5 rounded-full bg-primary pl-4 pr-5 text-base font-bold text-white shadow-fab transition-transform active:scale-95"
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-lime text-ink">
-          <Plus size={18} strokeWidth={3} aria-hidden="true" />
-        </span>
+        <Plus size={22} strokeWidth={2.6} aria-hidden="true" />
         {label ?? t('add')}
       </button>
     </div>

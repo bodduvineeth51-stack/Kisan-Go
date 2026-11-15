@@ -60,26 +60,26 @@ export default function DriverCustomers({ me, onAccessRemoved, activeTab, onTabC
           <p className="py-10 text-center text-sm font-semibold text-muted">{t('noSearchMatch', { q: search })}</p>
         )}
 
-        <div className="flex flex-col gap-2">
-          {!loading && filtered.map((c) => (
-            <div key={c.id} className="flex items-center gap-3 rounded-[18px] bg-surface py-2 pl-3.5 pr-2 shadow-card">
-              <Avatar id={c.id} name={c.name} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-base font-bold text-ink">{c.name}</p>
-                <p className="text-[13px] font-medium text-muted">{formatPhone(c.phone)}</p>
+        {!loading && filtered.length > 0 && (
+          <div className="overflow-hidden rounded-[20px] bg-surface shadow-card">
+            {filtered.map((c) => (
+              <div key={c.id} className="flex items-center gap-3 border-b border-divider py-2.5 pl-3.5 pr-2.5 last:border-b-0">
+                <Avatar name={c.name} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-base font-bold text-ink">{c.name}</p>
+                  <p className="text-[13px] font-medium text-muted">{formatPhone(c.phone)}</p>
+                </div>
+                <button
+                  onClick={() => onStartJob(c)}
+                  className="flex min-h-11 items-center gap-1.5 rounded-[14px] bg-primary pl-3 pr-3.5 text-sm font-bold text-white active:scale-95"
+                >
+                  <Play size={14} fill="currentColor" strokeWidth={0} aria-hidden="true" />
+                  {t('startWork')}
+                </button>
               </div>
-              <button
-                onClick={() => onStartJob(c)}
-                className="flex min-h-12 items-center gap-2 rounded-2xl bg-primary-bright pl-2 pr-4 text-sm font-extrabold text-white active:scale-95"
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface">
-                  <Play size={14} fill="#15803D" strokeWidth={0} aria-hidden="true" />
-                </span>
-                {t('startWork')}
-              </button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <AddButton onClick={() => setShowAdd(true)} ariaLabel={t('tileAddCustomer')} />

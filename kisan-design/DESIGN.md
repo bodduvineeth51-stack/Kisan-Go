@@ -1,5 +1,16 @@
 # Kisan Go — UI design guide
 
+> **November 2026 clean-up — these rules override the reference screens
+> where they differ:** one language at a time (no Telugu sub-labels in
+> English mode, no English in Telugu mode); language switch is the small
+> "తె | EN" pill top-right (Login, Profile setup, Home, Profile); neutral
+> page background `#F4F6F4`; cards get a hairline edge (1px ring in the
+> shadow) instead of a heavy shadow; lists are one grouped card with
+> dividers, not separate floating cards; one avatar colour (mint-100 /
+> primary); no decorative circles or blobs; no Call/WhatsApp buttons on
+> the Customer page; no Home shortcut tiles. Prefer fewer words: no
+> helper sentences under headings unless they prevent a mistake.
+
 The `screens/` folder has the approved design for every screen, as HTML
 reference files (one per screen, 390 × 844 phone size). Match them exactly:
 same layout, spacing, colours, fonts, corner rounding, shadows and icons.
@@ -37,7 +48,7 @@ Load from Google Fonts in `index.html`:
 
 | Name | Hex | Used for |
 |---|---|---|
-| bg | #F2FAF4 | Page background (soft mint) |
+| bg | #F4F6F4 | Page background (neutral, faint green) |
 | surface | #FFFFFF | Cards, bottom bar, inputs |
 | ink | #0F2A1A | Main text |
 | muted | #4B6355 | Secondary text |
@@ -61,14 +72,14 @@ Load from Google Fonts in `index.html`:
 Add these to `tailwind.config.js` under `theme.extend.colors` so you can use
 classes like `bg-primary`, `text-muted`, `bg-due-bg`.
 
-Customer avatars cycle through these colour pairs (background / text):
-#BBF7D0/#166534, #FEF3C7/#92400E, #E0F2FE/#075985, #FCE7F3/#9D174D, #EDE9FE/#5B21B6.
+Avatars: one colour for everyone — mint-100 background, primary text.
 
 ## Shape and depth
 
 - Corner rounding: cards 18–26px, buttons 16–24px, small chips 8–12px,
   avatars 14px (rounded square, not circle).
-- Card shadow: `0 4px 14px rgba(15,42,26,0.06)`. Cards have **no border**.
+- Card shadow: `0 1px 2px rgba(16,35,26,0.04), 0 0 0 1px rgba(16,35,26,0.06)`
+  (the 1px ring is the card edge; no border classes).
 - Green button and hero card shadow: `0 10px 22px rgba(21,128,61,0.3)`.
 - Floating bottom bar: white, 24px rounded, 12px away from the screen edges,
   shadow `0 6px 24px rgba(15,42,26,0.12)`. The active tab gets a #DCFCE7 pill.
@@ -78,8 +89,8 @@ Customer avatars cycle through these colour pairs (background / text):
 ## Touch and readability rules
 
 - Every tap target is at least 44px tall. Main action buttons are 58–80px.
-- Main actions show English with Telugu beneath (e.g. "Start work /
-  పని మొదలుపెట్టండి").
+- Show only the chosen language. Never put the other language beneath a
+  label.
 - Money amounts use Indian formatting: ₹4,583, ₹48,600, ₹2,35,000.
 - Icons are simple line icons (stroke 2–2.4). The `lucide-react` package
   matches them well: Home, Users, Wallet, Menu, Search, Mic, Phone,

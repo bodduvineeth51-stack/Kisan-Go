@@ -2,7 +2,6 @@
 // shadows come from kisan-design/screens/*.html — keep them in sync with
 // DESIGN.md rather than restyling one screen at a time.
 import { ArrowRight, ChevronLeft, X } from 'lucide-react'
-import translations from '../lib/i18n'
 import { useTrans } from '../context/LangContext'
 
 export function LogoMark({ size = 38, className = '' }) {
@@ -30,21 +29,6 @@ export function Logo() {
       <LogoMark />
       <Wordmark />
     </div>
-  )
-}
-
-// English label with the Telugu one beneath (DESIGN.md: main actions are
-// bilingual). In Telugu mode only the Telugu label is shown.
-export function Bilingual({ k, vars, subClass = 'text-sm font-medium opacity-90' }) {
-  const { t, lang } = useTrans()
-  const te = translations.te[k]
-  return (
-    <span className="flex flex-col leading-[1.15]">
-      <span>{t(k, vars)}</span>
-      {lang === 'en' && te && (
-        <span className={subClass}>{te.replace(/\{(\w+)\}/g, (_, v) => String(vars?.[v] ?? ''))}</span>
-      )}
-    </span>
   )
 }
 
@@ -86,7 +70,7 @@ const CHIP_TONES = {
 export function Chip({ tone = 'mint', small = false, className = '', children }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 whitespace-nowrap font-extrabold ${
+      className={`inline-flex items-center gap-1 whitespace-nowrap font-bold ${
         small ? 'rounded-lg px-2 py-px text-xs' : 'rounded-xl px-3 py-[5px] text-[13px]'
       } ${CHIP_TONES[tone]} ${className}`}
     >
@@ -234,19 +218,15 @@ export function ChoiceButton({ selected, onClick, children, className = '', ...r
   )
 }
 
-// Main green action. `arrow` adds the lime arrow circle from the login screen.
+// Main green action. `arrow` adds a trailing arrow.
 export function PrimaryButton({ arrow = false, className = '', children, ...rest }) {
   return (
     <button
-      className={`flex min-h-16 w-full items-center justify-center gap-2.5 rounded-[20px] bg-primary px-4 text-xl font-extrabold text-white shadow-green transition-transform active:scale-[0.98] disabled:opacity-60 ${className}`}
+      className={`flex min-h-[60px] w-full items-center justify-center gap-2 rounded-[18px] bg-primary px-4 text-lg font-bold text-white shadow-green transition-transform active:scale-[0.98] disabled:opacity-60 ${className}`}
       {...rest}
     >
       {children}
-      {arrow && (
-        <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-lime text-ink">
-          <ArrowRight size={20} strokeWidth={2.8} aria-hidden="true" />
-        </span>
-      )}
+      {arrow && <ArrowRight size={22} strokeWidth={2.6} aria-hidden="true" />}
     </button>
   )
 }

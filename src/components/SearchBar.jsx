@@ -7,7 +7,7 @@ export default function SearchBar({ value, onChange }) {
   const { t } = useTrans()
   const voice = useVoiceSearch(onChange)
   return (
-    <div className="flex h-14 items-center gap-2.5 rounded-[18px] bg-surface pl-4 shadow-card">
+    <div className="flex h-[52px] items-center gap-2.5 rounded-[16px] bg-surface pl-4 shadow-card">
       <Search size={22} strokeWidth={2.2} className="shrink-0 text-muted" aria-hidden="true" />
       <label htmlFor="customer-search" className="sr-only">{t('searchCustomers')}</label>
       <input
@@ -23,7 +23,7 @@ export default function SearchBar({ value, onChange }) {
           type="button"
           onClick={voice.toggle}
           aria-label={voice.listening ? t('stopListening') : t('searchByVoice')}
-          className={`relative mr-[5px] flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[14px] text-white ${
+          className={`relative mr-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-white ${
             voice.listening ? 'bg-danger' : 'bg-primary'
           }`}
         >
@@ -49,7 +49,7 @@ export function FilterPills({ options, value, onChange }) {
             onClick={() => onChange(id)}
             aria-pressed={on}
             className={`h-11 shrink-0 rounded-[22px] px-4 text-sm ${
-              on ? 'bg-primary font-extrabold text-white shadow-pill' : 'bg-surface font-semibold text-ink shadow-pill-off'
+              on ? 'bg-primary font-bold text-white shadow-pill' : 'bg-surface font-semibold text-ink shadow-pill-off'
             }`}
           >
             {label}

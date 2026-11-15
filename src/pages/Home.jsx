@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Clock, ChevronRight, UserPlus, Wallet, MessageCircle } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { formatMoney, formatHours } from '../lib/format'
 import BottomNav from '../components/BottomNav'
@@ -8,28 +8,14 @@ import Avatar from '../components/Avatar'
 import CustomerForm from '../components/CustomerForm'
 import { Logo, Spinner, ErrorCard, EmptyCard } from '../components/ui'
 import { useTrans, LangToggle } from '../context/LangContext'
-import { useRecordedBy } from '../lib/useRecordedBy'
 
-function Tile({ icon: Icon, iconClass, label, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex h-[92px] flex-col items-center justify-center gap-2 rounded-[20px] bg-surface text-[13px] font-bold text-ink shadow-card active:scale-[0.97]"
-    >
-      <span className={`flex h-[42px] w-[42px] items-center justify-center rounded-[14px] ${iconClass}`}>
-        <Icon size={22} strokeWidth={2.2} aria-hidden="true" />
-      </span>
-      {label}
-    </button>
-  )
-}
-
+// Only the states that need the owner's attention get a label; a bill that
+// went out normally needs no extra text.
 function StatusChip({ record, customer }) {
   const { t } = useTrans()
-  const base = 'inline-block rounded-lg px-2 py-px text-xs font-bold'
-  if (customer?.is_paid) return <span className={`${base} bg-primary text-white`}>{t('paid')}</span>
-  if (record.whatsapp_status === 'sent') return <span className={`${base} bg-mint-100 text-primary`}>{t('billSent')}</span>
-  if (record.whatsapp_status === 'sending') return <span className={`${base} bg-mint-50 text-muted`}>{t('whatsappSending')}</span>
+  const base = 'mt-0.5 inline-block rounded-md px-1.5 text-[11px] font-bold'
+  if (customer?.is_paid) return <span className={`${base} bg-mint-100 text-primary`}>{t('paid')}</span>
+  if (record.whatsapp_status === 'sent' || record.whatsapp_status === 'sending') return null
   return <span className={`${base} bg-due-bg text-due`}>{t('billNotSent')}</span>
 }
 
@@ -40,7 +26,6 @@ export default function Home({ owner, activeTab, onTabChange, onOpenCustomer }) 
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
   const [showForm, setShowForm]       = useState(false)
-  const recordedBy = useRecordedBy(owner.id)
 
   async function fetchAll() {
     setLoading(true)
@@ -105,55 +90,41 @@ export default function Home({ owner, activeTab, onTabChange, onOpenCustomer }) 
         {/* Greeting */}
         <div>
           <div className="text-sm font-medium text-muted">{dateLabel}</div>
-          <h1 className="mt-0.5 text-[28px] font-extrabold leading-[1.15] tracking-[-0.8px]">
+          <h1 className="mt-0.5 text-[26px] font-extrabold leading-[1.15] tracking-[-0.6px]">
             {t('namaste', { name: owner.name })}
           </h1>
         </div>
 
         {error && <ErrorCard message={error} onRetry={fetchAll} />}
 
-        {/* Today's earnings hero card */}
-        <div className="relative flex flex-col gap-2.5 overflow-hidden rounded-[26px] bg-primary p-5 text-white shadow-hero">
-          <div className="absolute -right-10 -top-[50px] h-[170px] w-[170px] rounded-full bg-circle-1 opacity-45" />
-          <div className="absolute right-10 top-[60px] h-20 w-20 rounded-full bg-circle-2 opacity-30" />
-          <div className="relative flex items-center gap-2">
-            <span className="text-sm font-semibold text-mint-100">{t('todaysEarnings')}</span>
-            <span className="ml-auto rounded-xl bg-white/[0.18] px-2.5 py-1 text-[13px] font-bold">
-              {formatHours(todayHours)} · {jobsLabel}
-            </span>
+        {/* Today's earnings */}
+        <div className="flex flex-col gap-1 rounded-[24px] bg-primary p-5 text-white shadow-hero">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-white/80">{t('todaysEarnings')}</span>
+            <span className="text-[13px] font-semibold text-white/80">{formatHours(todayHours)} · {jobsLabel}</span>
           </div>
-          <div className="relative text-[44px] font-extrabold leading-none tracking-[-1.5px]">
+          <div className="text-[40px] font-extrabold leading-tight tracking-[-1.2px]">
             {loading ? '…' : formatMoney(todayAmount)}
           </div>
           {pendingCount > 0 && (
             <button
               onClick={() => onTabChange('earnings')}
-              className="relative mt-1 flex items-center gap-2.5 rounded-2xl bg-surface px-3 py-2.5 text-left text-ink"
+              className="mt-2 flex min-h-11 items-center gap-2 rounded-2xl bg-white/[0.14] px-3.5 py-2 text-left"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-due-bg text-due">
-                <Clock size={18} strokeWidth={2.4} aria-hidden="true" />
-              </span>
               <span className="flex-1 text-sm font-semibold">
-                <b className="font-extrabold text-due">{formatMoney(pendingTotal)}</b>{' '}
-                {t('toCollectFrom', { n: pendingCount })}
+                <b className="font-extrabold">{formatMoney(pendingTotal)}</b>{' '}
+                <span className="text-white/85">{t('toCollectFrom', { n: pendingCount })}</span>
               </span>
-              <ChevronRight size={20} strokeWidth={2.6} className="text-primary" aria-hidden="true" />
+              <ChevronRight size={20} strokeWidth={2.4} aria-hidden="true" />
             </button>
           )}
         </div>
 
-        {/* Shortcut tiles */}
-        <div className="grid grid-cols-3 gap-2.5">
-          <Tile icon={UserPlus} iconClass="bg-mint-100 text-primary" label={t('tileAddCustomer')} onClick={() => setShowForm(true)} />
-          <Tile icon={Wallet} iconClass="bg-amber-bg text-amber" label={t('tileGotPayment')} onClick={() => onTabChange('customers', { filter: 'due' })} />
-          <Tile icon={MessageCircle} iconClass="bg-blue-bg text-blue" label={t('tileSendReminders')} onClick={() => onTabChange('earnings')} />
-        </div>
-
         {/* Today's jobs */}
         <div className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between">
+          <div className="flex items-center justify-between">
             <h2 className="text-lg font-extrabold tracking-[-0.3px]">{t('todaysJobs')}</h2>
-            <button onClick={() => onTabChange('customers')} className="text-sm font-bold text-primary">
+            <button onClick={() => onTabChange('customers')} className="min-h-11 px-1 text-sm font-bold text-primary">
               {t('seeAll')}
             </button>
           </div>
@@ -164,31 +135,32 @@ export default function Home({ owner, activeTab, onTabChange, onOpenCustomer }) 
             <EmptyCard title={t('noJobsToday')} sub={t('noJobsTodaySub')} />
           )}
 
-          {!loading && todayRecs.map((r) => {
-            const c = customerMap[r.customer_id]
-            return (
-              <button
-                key={r.id}
-                onClick={() => c && onOpenCustomer(c)}
-                className="flex items-center gap-3 rounded-[18px] bg-surface px-3.5 py-2.5 text-left text-ink shadow-card active:scale-[0.99]"
-              >
-                <Avatar id={r.customer_id} name={c?.name} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-base font-bold">{c?.name ?? '—'}</span>
-                  <span className="block text-[13px] font-medium text-muted">
-                    {r.vehicle_type} · {formatHours(r.total_hours)}
-                  </span>
-                  {recordedBy(r) && (
-                    <span className="block truncate text-xs font-medium text-muted">{recordedBy(r)}</span>
-                  )}
-                </span>
-                <span className="text-right">
-                  <span className="block text-base font-extrabold">{formatMoney(r.amount)}</span>
-                  <StatusChip record={r} customer={c} />
-                </span>
-              </button>
-            )
-          })}
+          {!loading && todayRecs.length > 0 && (
+            <div className="overflow-hidden rounded-[20px] bg-surface shadow-card">
+              {todayRecs.map((r) => {
+                const c = customerMap[r.customer_id]
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => c && onOpenCustomer(c)}
+                    className="flex w-full items-center gap-3 border-b border-divider px-3.5 py-3 text-left text-ink last:border-b-0 active:bg-mint-50"
+                  >
+                    <Avatar name={c?.name} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-base font-bold">{c?.name ?? '—'}</span>
+                      <span className="block text-[13px] font-medium text-muted">
+                        {r.vehicle_type} · {formatHours(r.total_hours)}
+                      </span>
+                    </span>
+                    <span className="flex flex-col items-end">
+                      <span className="text-base font-extrabold">{formatMoney(r.amount)}</span>
+                      <StatusChip record={r} customer={c} />
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 

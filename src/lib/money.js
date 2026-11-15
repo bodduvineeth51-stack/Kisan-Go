@@ -39,13 +39,3 @@ export function periodStart(period, now = new Date()) {
   }
   return null // season = everything
 }
-
-// The WhatsApp text the send-whatsapp edge function sends (free-form path).
-// Keep in sync with buildMessage() in supabase/functions/send-whatsapp.
-export function billMessage(lang, { name, vehicle, hours, rate, amount }) {
-  const h = Number(hours).toFixed(2)
-  if (lang === 'te') {
-    return `నమస్కారం ${name} గారు, మీ పని అయింది.\nవాహనం: ${vehicle}\nసమయం: ${h} గంటలు | రేటు: ₹${rate}/గం\nమొత్తం: ₹${amount}\n— Kisan Go`
-  }
-  return `Hi ${name}, your Kisan Go job is done.\nVehicle: ${vehicle}\nTime: ${h} hrs | Rate: ₹${rate}/hr\nAmount due: ₹${amount}\n— Kisan Go`
-}

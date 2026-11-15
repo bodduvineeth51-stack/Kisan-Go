@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, Lock } from 'lucide-react'
 import { RecaptchaVerifier, signInWithPhoneNumber, signOut } from 'firebase/auth'
 import { supabase } from '../lib/supabaseClient'
 import { getFirebaseAuth } from '../lib/firebaseClient'
-import { useTrans } from '../context/LangContext'
+import { useTrans, LangToggle } from '../context/LangContext'
 import { localDigits, toE164, formatPhone } from '../lib/phone'
 import { readInvitePhone } from '../lib/invite'
-import { LogoMark, Wordmark, ChoiceButton, PhoneField, Field, PrimaryButton } from '../components/ui'
+import { LogoMark, Wordmark, PhoneField, Field, PrimaryButton } from '../components/ui'
 
 // Firebase error codes worth a plain-language message; anything else falls
 // back to the generic login error.
@@ -18,42 +17,24 @@ const FIREBASE_ERRORS = {
   'auth/quota-exceeded': 'tooManyAttempts',
 }
 
-// Mint header with the logo, bilingual tagline and the fields drawing.
+// Mint header: logo, tagline, fields drawing, and the small language
+// switch in the top-right corner (same "తె | EN" pill as the dashboards).
 export function LoginHero({ compact = false }) {
-  const { t, lang } = useTrans()
+  const { t } = useTrans()
   return (
-    <div className={`relative flex flex-col gap-4 overflow-hidden rounded-b-[36px] bg-mint-100 px-6 ${compact ? 'pt-6' : 'pt-9'}`}>
-      <div className="absolute -right-[60px] -top-[60px] h-[220px] w-[220px] rounded-full bg-mint-200" />
-      <div className="absolute -left-[30px] top-[140px] h-[90px] w-[90px] rounded-full bg-lime opacity-50" />
-      <LogoMark size={compact ? 48 : 60} className="relative" />
-      <div className="relative">
-        <Wordmark className={`block leading-none ${compact ? 'text-[34px] tracking-[-1.2px]' : 'text-[44px] tracking-[-1.5px]'}`} />
-        <p className="mt-2.5 text-lg font-semibold text-mint-ink">{t('tagline')}</p>
-        {lang === 'en' && <p className="mt-0.5 text-base font-medium text-mint-ink">మీ వాహనం లెక్కలు, మీ ఫోన్‌లో.</p>}
+    <div className={`relative flex flex-col gap-4 overflow-hidden rounded-b-[32px] bg-mint-100 px-6 ${compact ? 'pt-5' : 'pt-8'}`}>
+      <div className="flex items-start justify-between gap-3">
+        <LogoMark size={compact ? 44 : 56} />
+        <LangToggle />
       </div>
-      <svg viewBox="0 0 342 96" preserveAspectRatio="none" aria-hidden="true" className={`relative -mx-6 block w-[calc(100%+48px)] ${compact ? 'h-14' : 'h-24'}`}>
-        <circle cx="286" cy="38" r="20" className="fill-sun" />
+      <div>
+        <Wordmark className={`block leading-none ${compact ? 'text-[32px] tracking-[-1.2px]' : 'text-[42px] tracking-[-1.5px]'}`} />
+        <p className="mt-2 text-base font-semibold text-mint-ink">{t('tagline')}</p>
+      </div>
+      <svg viewBox="0 0 342 96" preserveAspectRatio="none" aria-hidden="true" className={`-mx-6 block w-[calc(100%+48px)] ${compact ? 'h-12' : 'h-20'}`}>
         <path d="M0 72 Q90 44 171 62 T342 52 V96 H0z" className="fill-circle-2" />
         <path d="M0 84 Q100 62 190 78 T342 70 V96 H0z" className="fill-circle-1" />
-        <path d="M20 96 L60 76 M70 96 L105 74 M120 96 L150 74 M170 96 L196 76 M220 96 L242 76 M270 96 L288 74 M318 96 L332 76" className="stroke-grass" strokeWidth="2.5" fill="none" />
       </svg>
-    </div>
-  )
-}
-
-export function LanguageChoice() {
-  const { lang, setLang } = useTrans()
-  return (
-    <div className="flex flex-col gap-2.5">
-      <p className="text-[15px] font-bold">Choose language · భాష ఎంచుకోండి</p>
-      <div className="grid grid-cols-2 gap-3">
-        {[['te', 'తెలుగు'], ['en', 'English']].map(([code, label]) => (
-          <ChoiceButton key={code} selected={lang === code} onClick={() => setLang(code)} className="h-[58px] text-[19px]">
-            {lang === code && <Check size={18} strokeWidth={3} aria-hidden="true" />}
-            {label}
-          </ChoiceButton>
-        ))}
-      </div>
     </div>
   )
 }
@@ -167,12 +148,10 @@ export default function Login() {
             {invitedPhone && (
               <p className="rounded-2xl bg-mint-100 px-4 py-3 text-sm font-semibold text-primary">{t('inviteBanner')}</p>
             )}
-            <LanguageChoice />
             <PhoneField
               id="phone"
               big
               label={t('phoneLabel')}
-              hint={t('codeHint')}
               value={phone}
               disabled={loading}
               onChange={setPhone}
@@ -182,7 +161,6 @@ export default function Login() {
               <PrimaryButton type="submit" disabled={loading} arrow={!loading}>
                 {loading ? t('sending') : t('sendOtp')}
               </PrimaryButton>
-              <PrivacyNote />
             </div>
           </form>
         )}
@@ -225,22 +203,11 @@ export default function Login() {
               <PrimaryButton type="submit" disabled={loading} arrow={!loading}>
                 {loading ? t('verifying') : t('verifyBtn')}
               </PrimaryButton>
-              <PrivacyNote />
             </div>
           </form>
         )}
         <div ref={recaptchaEl} />
       </div>
     </div>
-  )
-}
-
-function PrivacyNote() {
-  const { t } = useTrans()
-  return (
-    <p className="flex items-center justify-center gap-1.5 text-[13px] font-medium text-muted">
-      <Lock size={16} strokeWidth={2.2} className="text-primary" aria-hidden="true" />
-      {t('privacyNote')}
-    </p>
   )
 }

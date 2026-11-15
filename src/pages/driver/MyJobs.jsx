@@ -44,18 +44,20 @@ export default function MyJobs({ me, onAccessRemoved, activeTab, onTabChange }) 
         {loading && <Spinner />}
         {!loading && !error && jobs.length === 0 && <EmptyCard title={t('noMyJobs')} />}
 
-        <div className="flex flex-col gap-2">
-          {!loading && jobs.map((j) => (
-            <div key={j.id} className="flex items-center gap-3 rounded-2xl bg-surface px-3.5 py-[9px] shadow-card">
-              <DateTile iso={j.created_at} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-bold text-ink">{j.customer_name}</p>
-                <p className="text-[13px] font-medium text-muted">{j.vehicle_type} · {formatHours(j.total_hours)}</p>
+        {!loading && jobs.length > 0 && (
+          <div className="overflow-hidden rounded-[20px] bg-surface shadow-card">
+            {jobs.map((j) => (
+              <div key={j.id} className="flex items-center gap-3 border-b border-divider px-3.5 py-2.5 last:border-b-0">
+                <DateTile iso={j.created_at} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[15px] font-bold text-ink">{j.customer_name}</p>
+                  <p className="text-[13px] font-medium text-muted">{j.vehicle_type} · {formatHours(j.total_hours)}</p>
+                </div>
+                <span className="text-right text-[13px] font-semibold text-muted">{fmtTime(j.created_at, lang)}</span>
               </div>
-              <span className="text-right text-[13px] font-semibold text-muted">{fmtTime(j.created_at, lang)}</span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <BottomNav active={activeTab} onChange={onTabChange} tabs={DRIVER_TABS} />

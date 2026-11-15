@@ -5,7 +5,7 @@ import { useTrans } from '../context/LangContext'
 import { toE164 } from '../lib/phone'
 import { VEHICLE_TYPES, validateVehicles } from '../lib/vehicles'
 import { ChoiceButton, Field, FieldLabel, PrimaryButton } from '../components/ui'
-import { LanguageChoice, LoginHero } from './Login'
+import { LoginHero } from './Login'
 
 export default function ProfileSetup({ user, onComplete, onBack }) {
   const { t } = useTrans()
@@ -64,8 +64,6 @@ export default function ProfileSetup({ user, onComplete, onBack }) {
             <h1 className="text-[28px] font-extrabold leading-[1.15] tracking-[-0.8px]">{t('profileTitle')}</h1>
             <p className="mt-1 text-base font-medium text-muted">{t('profileSub')}</p>
           </div>
-
-          <LanguageChoice />
 
           <Field
             id="name"

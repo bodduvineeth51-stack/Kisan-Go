@@ -57,15 +57,12 @@ function InstallBanner() {
 
 function Loading() {
   return (
-    <div className="relative flex min-h-svh flex-col items-center justify-center gap-6 overflow-hidden bg-mint-100">
-      <div className="absolute -right-[60px] -top-[60px] h-[220px] w-[220px] rounded-full bg-mint-200" />
-      <div className="absolute -left-[30px] bottom-[20%] h-[90px] w-[90px] rounded-full bg-lime opacity-50" />
-      <div className="relative flex flex-col items-center gap-4 text-center">
-        <LogoMark size={72} />
-        <Wordmark className="text-[44px] leading-none tracking-[-1.5px]" />
-        <p className="text-base font-semibold text-mint-ink">మీ వాహనం లెక్కలు, మీ ఫోన్‌లో.</p>
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-bg">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <LogoMark size={64} />
+        <Wordmark className="text-[38px] leading-none tracking-[-1.2px]" />
       </div>
-      <div role="status" aria-label="Loading" className="relative h-8 w-8 animate-spin rounded-full border-4 border-mint-200 border-t-primary" />
+      <div role="status" aria-label="Loading" className="h-7 w-7 animate-spin rounded-full border-[3px] border-mint-200 border-t-primary" />
     </div>
   )
 }

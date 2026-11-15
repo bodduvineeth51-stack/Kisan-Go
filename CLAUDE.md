@@ -268,6 +268,14 @@ Reuses the Android repo's Phase 2 database objects unchanged (`supabase/migratio
 - App: first open for a dual-role person shows a chooser (`RoleChooser` in `App.jsx`); the choice is saved per user in localStorage (`kisan_mode_<uid>`). Opening a driver link with your own number opens the driver side. Owner and driver Profile pages have a switch button; the access-removed screen offers "Open my business".
 - Tests: `tests/database.test.js` (owner-as-driver case) and two browser tests in `tests/browser/flows.spec.js`.
 
+### Phase 15 — UI clean-up (November 15)
+- One language at a time: `Bilingual` component removed; no hard-coded Telugu in English mode (splash, login tagline, Stop button). Login/Profile setup lost the big Telugu/English buttons; `LoginHero` carries the small `LangToggle`. The pill is on Login, Profile setup, Home and Profile (owner + driver) only.
+- Customers list rows show the vehicles that worked for that customer (newest first, from `work_records.vehicle_type`); customers with no work show their phone instead. "Recorded by <driver>" lines were removed everywhere (`useRecordedBy.js` deleted) — the owner reads the vehicle instead.
+- Customer page: Call / WhatsApp buttons removed (Remind on WhatsApp kept), paid/billed progress bar removed (payment is all-or-nothing so it was always 0% or 100%).
+- Bill-sent screen no longer shows the WhatsApp message preview; `billMessage()` was deleted from `lib/money.js`. `buildMessage()` in the edge function is now the only copy of the text.
+- Home: shortcut tiles removed (duplicated + Add and Money). Job status chip only for "Not sent" / "Paid".
+- Look: neutral background, hairline-edged cards, grouped lists with dividers, single-colour avatars, no decorative circles. Tokens in `src/index.css`; rules at the top of `kisan-design/DESIGN.md`.
+
 ## Rules
 - All UI must follow `kisan-design/DESIGN.md` (colours, fonts, spacing,
   shapes, icons) and match the reference screens in `kisan-design/screens/`.

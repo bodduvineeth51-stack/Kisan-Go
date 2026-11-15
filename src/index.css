@@ -2,54 +2,59 @@
 
 /* Design tokens — source of truth is kisan-design/DESIGN.md.
    Tailwind v4 reads these instead of a tailwind.config.js:
-   --color-primary → bg-primary, text-primary, border-primary, … */
+   --color-primary → bg-primary, text-primary, border-primary, …
+
+   November 2026 clean-up: neutral page background, softer greens, and
+   hairline card outlines instead of heavy drop shadows. */
 @theme {
   --font-sans: 'Plus Jakarta Sans', 'Noto Sans Telugu', sans-serif;
 
-  --color-bg: #F2FAF4;
+  --color-bg: #F4F6F4;
   --color-surface: #FFFFFF;
-  --color-ink: #0F2A1A;
-  --color-muted: #4B6355;
+  --color-ink: #10231A;
+  --color-muted: #5A6B61;
   --color-primary: #15803D;
   --color-primary-bright: #16A34A;
-  --color-mint-50: #F0FDF4;
-  --color-mint-100: #DCFCE7;
-  --color-mint-200: #BBF7D0;
+  --color-mint-50: #F2F8F4;
+  --color-mint-100: #E2F3E7;
+  --color-mint-200: #C8E8D2;
   --color-circle-1: #22C55E;
   --color-circle-2: #4ADE80;
   --color-lime: #BEF264;
   --color-due: #C2410C;
-  --color-due-bg: #FFEDD5;
+  --color-due-bg: #FFF0E5;
   --color-due-bar: #FDBA74;
   --color-amber: #B45309;
   --color-amber-bg: #FEF3C7;
   --color-blue: #0369A1;
   --color-blue-bg: #E0F2FE;
   --color-danger: #DC2626;
-  --color-border: #E2EDE5;
-  --color-divider: #EEF5F0;
-  --color-field: #F7FBF8;       /* unselected choice button */
+  --color-border: #E3E8E4;
+  --color-divider: #EEF1EE;
+  --color-field: #F7F9F7;       /* unselected choice button */
   --color-mint-ink: #166534;    /* text on mint headers */
   --color-sun: #FACC15;         /* login illustration */
   --color-grass: #86EFAC;       /* login illustration */
   --color-live-bg: #FEE2E2;     /* timer LIVE badge */
   --color-live: #B91C1C;
-  --color-idle-bg: #F3F4F6;     /* timer PAUSED badge */
+  --color-idle-bg: #EEF0EF;     /* timer PAUSED badge */
   --color-idle: #4B5563;
-  --color-ring-idle: #9CA3AF;   /* timer ring when stopped */
+  --color-ring-idle: #C4CCC7;   /* timer ring when stopped */
 
-  --shadow-card: 0 4px 14px rgba(15, 42, 26, 0.06);
-  --shadow-soft: 0 2px 10px rgba(15, 42, 26, 0.08);
-  --shadow-raised: 0 10px 28px rgba(15, 42, 26, 0.1);
-  --shadow-green: 0 10px 22px rgba(21, 128, 61, 0.3);
-  --shadow-hero: 0 10px 24px rgba(21, 128, 61, 0.28);
-  --shadow-start: 0 10px 24px rgba(22, 163, 74, 0.35);
-  --shadow-danger: 0 10px 22px rgba(220, 38, 38, 0.3);
-  --shadow-dark: 0 10px 22px rgba(15, 42, 26, 0.25);
-  --shadow-pill: 0 6px 14px rgba(21, 128, 61, 0.25);
-  --shadow-pill-off: 0 2px 8px rgba(15, 42, 26, 0.06);
-  --shadow-fab: 0 12px 26px rgba(21, 128, 61, 0.4);
-  --shadow-nav: 0 6px 24px rgba(15, 42, 26, 0.12);
+  /* A 1px ring inside the shadow gives cards a hairline edge without
+     adding border classes everywhere. */
+  --shadow-card: 0 1px 2px rgba(16, 35, 26, 0.04), 0 0 0 1px rgba(16, 35, 26, 0.06);
+  --shadow-soft: 0 1px 2px rgba(16, 35, 26, 0.04), 0 0 0 1px rgba(16, 35, 26, 0.06);
+  --shadow-raised: 0 4px 16px rgba(16, 35, 26, 0.06), 0 0 0 1px rgba(16, 35, 26, 0.05);
+  --shadow-green: 0 4px 12px rgba(21, 128, 61, 0.22);
+  --shadow-hero: 0 6px 18px rgba(21, 128, 61, 0.18);
+  --shadow-start: 0 4px 14px rgba(21, 128, 61, 0.24);
+  --shadow-danger: 0 4px 12px rgba(220, 38, 38, 0.22);
+  --shadow-dark: 0 4px 12px rgba(16, 35, 26, 0.18);
+  --shadow-pill: 0 2px 6px rgba(21, 128, 61, 0.2);
+  --shadow-pill-off: 0 0 0 1px rgba(16, 35, 26, 0.08);
+  --shadow-fab: 0 8px 20px rgba(21, 128, 61, 0.3);
+  --shadow-nav: 0 4px 20px rgba(16, 35, 26, 0.08), 0 0 0 1px rgba(16, 35, 26, 0.05);
 }
 
 @layer base {
@@ -58,6 +63,8 @@
     color: var(--color-ink);
     font-family: var(--font-sans);
     line-height: 1.3;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 

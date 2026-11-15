@@ -62,19 +62,13 @@ export default function DriverProfile({ me, phone, onSignOut, onAccessRemoved, a
         <PageHeader title={t('profileTab')} right={<LangToggle />} />
 
         {/* Who you are */}
-        <div className="relative flex items-center gap-4 overflow-hidden rounded-[26px] bg-primary p-5 text-white shadow-hero">
-          <div className="absolute -right-10 -top-[50px] h-[170px] w-[170px] rounded-full bg-circle-1 opacity-45" />
-          <div className="absolute right-10 top-[60px] h-20 w-20 rounded-full bg-circle-2 opacity-30" />
-          <span className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] bg-mint-100 text-2xl font-extrabold text-primary">
+        <div className="flex items-center gap-4 rounded-[22px] bg-surface p-4 shadow-card">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-mint-100 text-xl font-extrabold text-primary">
             {initials}
           </span>
-          <div className="relative min-w-0 flex-1">
-            <p className="truncate text-2xl font-extrabold leading-tight tracking-[-0.5px]">{me.name}</p>
-            <p className="mt-0.5 text-sm font-semibold text-mint-100">{formatPhone(phone)}</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <span className="rounded-lg bg-white/[0.18] px-2 py-px text-xs font-bold">{t('roleDriver')}</span>
-              <span className="rounded-lg bg-lime px-2 py-px text-xs font-bold text-ink">{t('status_active')}</span>
-            </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xl font-extrabold leading-tight tracking-[-0.4px]">{me.name}</p>
+            <p className="mt-0.5 text-sm font-medium text-muted">{formatPhone(phone)} · {t('roleDriver')}</p>
           </div>
         </div>
 
@@ -96,12 +90,10 @@ export default function DriverProfile({ me, phone, onSignOut, onAccessRemoved, a
           ))}
         </Card>
 
-        <p className="px-1 text-sm font-medium text-muted">{t('profileContactOwner')}</p>
-
         {onSwitchToOwner && (
           <button
             onClick={onSwitchToOwner}
-            className="flex min-h-14 items-center justify-center gap-2 rounded-[18px] bg-mint-100 px-4 text-base font-extrabold text-primary shadow-card active:scale-[0.98]"
+            className="flex min-h-14 items-center justify-center gap-2 rounded-[18px] bg-surface px-4 text-base font-bold text-primary shadow-card active:scale-[0.98]"
           >
             <Repeat size={20} strokeWidth={2.4} aria-hidden="true" />
             {t('switchToOwner')}
@@ -110,7 +102,7 @@ export default function DriverProfile({ me, phone, onSignOut, onAccessRemoved, a
 
         <button
           onClick={onSignOut}
-          className="flex min-h-14 items-center justify-center gap-2 rounded-[18px] bg-surface text-base font-extrabold text-danger shadow-card active:scale-[0.98]"
+          className="flex min-h-14 items-center justify-center gap-2 rounded-[18px] bg-surface text-base font-bold text-danger shadow-card active:scale-[0.98]"
         >
           <LogOut size={20} strokeWidth={2.4} aria-hidden="true" />
           {t('signOut')}

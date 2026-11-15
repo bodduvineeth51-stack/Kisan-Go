@@ -3,8 +3,6 @@ import { Check, Mic, Plus, RotateCw, Wallet, X } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { driverRpc, AccessRemovedError } from '../lib/roles'
 import { formatMoney, formatHours } from '../lib/format'
-import { formatPhone } from '../lib/phone'
-import { billMessage } from '../lib/money'
 import VoiceEntry from '../components/VoiceEntry'
 import Avatar from '../components/Avatar'
 import { BackButton, ChoiceButton, Field, PrimaryButton, SecondaryButton, Sheet } from '../components/ui'
@@ -156,7 +154,6 @@ export default function TimerScreen({
   const last = sessions[sessions.length - 1]
   const clockSecs = running ? runSecs : last ? Math.round((new Date(last.stop) - new Date(last.start)) / 1000) : 0
   const ringOffset = RING * (1 - (clockSecs % 3600) / 3600)
-  const statusText = running ? t('sessionN', { n: sessions.length + 1 }) : sessions.length ? t('paused') : t('ready')
 
   return (
     <div className="min-h-svh">
@@ -178,12 +175,9 @@ export default function TimerScreen({
         </div>
 
         {/* Customer */}
-        <div className="flex items-center gap-3 rounded-[20px] bg-surface px-3 py-2.5 shadow-card">
-          <Avatar id={customer.id} name={customer.name} size="lg" />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[17px] font-extrabold">{customer.name}</span>
-            <span className="block text-[13px] font-medium text-muted">{formatPhone(customer.phone)}</span>
-          </span>
+        <div className="flex items-center gap-3 rounded-[20px] bg-surface py-2 pl-3 pr-2 shadow-card">
+          <Avatar name={customer.name} size="lg" />
+          <span className="min-w-0 flex-1 truncate text-[17px] font-extrabold">{customer.name}</span>
           <button onClick={onBack} className="min-h-11 rounded-xl bg-mint-50 px-3 text-sm font-bold text-primary">
             {t('change')}
           </button>
@@ -219,7 +213,6 @@ export default function TimerScreen({
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center" role="timer" aria-live="off">
-            <span className="text-[13px] font-bold text-muted">{statusText}</span>
             <span className="text-[38px] font-extrabold leading-[1.15] tracking-[-1px] tabular-nums">{clock(clockSecs)}</span>
           </div>
         </div>
@@ -228,21 +221,18 @@ export default function TimerScreen({
         {running ? (
           <button
             onClick={handleStop}
-            className="flex h-[72px] shrink-0 items-center justify-center gap-3.5 rounded-3xl bg-danger text-white shadow-danger active:scale-[0.98]"
+            className="flex h-[68px] shrink-0 items-center justify-center gap-3 rounded-[20px] bg-danger text-white shadow-danger active:scale-[0.98]"
           >
-            <span className="h-[26px] w-[26px] rounded-[7px] bg-surface" />
+            <span className="h-[20px] w-[20px] rounded-[5px] bg-surface" />
             <span className="text-2xl font-extrabold">{t('stopBtn')}</span>
-            {lang === 'en' && <span className="text-base font-semibold opacity-90">· ఆపండి</span>}
           </button>
         ) : (
           <button
             onClick={handleStart}
             disabled={!vehicle || submitPhase !== null}
-            className="flex h-[72px] shrink-0 items-center justify-center gap-3.5 rounded-3xl bg-ink text-white shadow-dark active:scale-[0.98] disabled:opacity-40"
+            className="flex h-[68px] shrink-0 items-center justify-center gap-3 rounded-[20px] bg-ink text-white shadow-dark active:scale-[0.98] disabled:opacity-40"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lime">
-              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="#0F2A1A" /></svg>
-            </span>
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z" fill="currentColor" /></svg>
             <span className="text-[22px] font-extrabold">{sessions.length ? t('startAgain') : t('startBtn')}</span>
           </button>
         )}
@@ -272,11 +262,11 @@ export default function TimerScreen({
             })}
             <div className="flex items-center justify-between bg-primary px-4 py-3 text-white">
               <span>
-                <span className="block text-xs font-semibold text-mint-100">{t('totalTime')}</span>
+                <span className="block text-xs font-semibold text-white/80">{t('totalTime')}</span>
                 <span className="block text-[19px] font-extrabold">{formatHours(totalMins / 60)}</span>
               </span>
               <span className="text-right">
-                <span className="block text-xs font-semibold text-mint-100">{t('billSoFar')}</span>
+                <span className="block text-xs font-semibold text-white/80">{t('billSoFar')}</span>
                 <span className="block text-2xl font-extrabold tracking-[-0.5px]">{formatMoney(amount)}</span>
               </span>
             </div>
@@ -357,17 +347,14 @@ function submitErrorText(err, t) {
 }
 
 // After Finish (kisan-design/screens/4-bill-sent.html): the bill as the
-// database worked it out, and what the customer gets on WhatsApp.
+// database worked it out, and whether it reached the customer on WhatsApp.
 function BillSent({ customer, role, record, whatsapp_status, sessionCount, onRetry, onDone }) {
-  const { t, lang } = useTrans()
+  const { t } = useTrans()
   const [paid, setPaid] = useState(false)
   const [payError, setPayError] = useState('')
   const sent = whatsapp_status === 'sent'
   const sending = whatsapp_status === 'sending'
   const date = new Date(record.created_at ?? Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-  const preview = billMessage(lang, {
-    name: customer.name, vehicle: record.vehicle_type, hours: record.total_hours, rate: record.hourly_rate, amount: record.amount,
-  })
 
   async function markPaid() {
     setPayError('')
@@ -378,69 +365,54 @@ function BillSent({ customer, role, record, whatsapp_status, sessionCount, onRet
 
   return (
     <div className="flex min-h-svh flex-col">
-      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
-        <div className="relative flex flex-col items-center gap-2 overflow-hidden bg-primary px-6 pb-[70px] pt-10 text-center text-white">
-          <div className="absolute -left-[50px] -top-10 h-40 w-40 rounded-full bg-circle-1 opacity-45" />
-          <div className="absolute -right-[30px] bottom-2.5 h-[110px] w-[110px] rounded-full bg-circle-2 opacity-30" />
-          <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-lime text-ink shadow-[0_0_0_10px_rgba(190,242,100,0.25)]">
+      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-5 pb-5 pt-10">
+        <div className="flex flex-col items-center gap-1 text-center">
+          <span className={`mb-2 flex h-16 w-16 items-center justify-center rounded-full ${sent || sending ? 'bg-mint-100 text-primary' : 'bg-due-bg text-due'}`}>
             {sent || sending
-              ? <Check size={42} strokeWidth={3} aria-hidden="true" />
-              : <Wallet size={36} strokeWidth={2.4} aria-hidden="true" />}
+              ? <Check size={34} strokeWidth={3} aria-hidden="true" />
+              : <Wallet size={30} strokeWidth={2.4} aria-hidden="true" />}
           </span>
-          <h1 className="relative mt-3.5 text-[26px] font-extrabold leading-[1.15] tracking-[-0.6px]">
+          <h1 className="text-[24px] font-extrabold leading-[1.15] tracking-[-0.5px]">
             {sent ? t('billSentTitle') : sending ? t('sendingWaLabel') : t('billSavedTitle')}
           </h1>
-          <p className="relative text-[15px] font-medium text-mint-100">
-            {t('toCustomer', { name: customer.name, phone: formatPhone(customer.phone) })}
-          </p>
+          <p className="text-[15px] font-medium text-muted">{customer.name}</p>
         </div>
 
-        <div className="relative -mt-12 flex flex-1 flex-col gap-4 px-5 pb-5">
-          <div className="overflow-hidden rounded-3xl bg-surface shadow-raised">
-            <div className="flex items-center justify-between border-b-2 border-dashed border-border px-[18px] py-3.5">
-              <span className="text-lg font-extrabold">{t('bill')}</span>
-              <span className="rounded-[10px] bg-mint-50 px-2.5 py-[3px] text-[13px] font-bold text-primary">{date} · {record.vehicle_type}</span>
-            </div>
-            <div className="flex flex-col gap-2 px-[18px] py-3 text-[15px]">
-              <Line label={t('workSessions')} value={sessionCount} />
-              <Line label={t('totalTime')} value={formatHours(record.total_hours)} />
-              <Line label={t('rate')} value={t('ratePerHour', { rate: formatMoney(record.hourly_rate) })} />
-            </div>
-            <div className="flex items-center justify-between bg-mint-100 px-[18px] py-3.5 text-primary">
-              <span className="text-base font-extrabold">{t('total')}</span>
-              <span className="text-[30px] font-extrabold leading-none tracking-[-1px]">{formatMoney(record.amount)}</span>
-            </div>
+        <div className="overflow-hidden rounded-[20px] bg-surface shadow-card">
+          <div className="flex items-center justify-between border-b border-divider px-[18px] py-3">
+            <span className="text-base font-extrabold">{t('bill')}</span>
+            <span className="text-[13px] font-semibold text-muted">{date} · {record.vehicle_type}</span>
           </div>
+          <div className="flex flex-col gap-2 px-[18px] py-3 text-[15px]">
+            <Line label={t('workSessions')} value={sessionCount} />
+            <Line label={t('totalTime')} value={formatHours(record.total_hours)} />
+            <Line label={t('rate')} value={t('ratePerHour', { rate: formatMoney(record.hourly_rate) })} />
+          </div>
+          <div className="flex items-center justify-between bg-mint-50 px-[18px] py-3.5 text-primary">
+            <span className="text-base font-extrabold">{t('total')}</span>
+            <span className="text-[28px] font-extrabold leading-none tracking-[-0.8px]">{formatMoney(record.amount)}</span>
+          </div>
+        </div>
 
-          {!sent && !sending && (
-            <div role="alert" className="flex items-center gap-3 rounded-[18px] bg-due-bg px-4 py-3">
-              <p className="flex-1 text-sm font-semibold text-due">{role === 'driver' ? t('billNotSentDriver') : t('billNotSentOwner')}</p>
-              <button onClick={onRetry} className="flex min-h-11 items-center gap-1.5 rounded-xl bg-surface px-3 text-sm font-extrabold text-due">
-                <RotateCw size={16} strokeWidth={2.6} aria-hidden="true" />
-                {t('retryShort')}
-              </button>
-            </div>
+        {!sent && !sending && (
+          <div role="alert" className="flex items-center gap-3 rounded-[18px] bg-due-bg px-4 py-3">
+            <p className="flex-1 text-sm font-semibold text-due">{role === 'driver' ? t('billNotSentDriver') : t('billNotSentOwner')}</p>
+            <button onClick={onRetry} className="flex min-h-11 items-center gap-1.5 rounded-xl bg-surface px-3 text-sm font-bold text-due">
+              <RotateCw size={16} strokeWidth={2.6} aria-hidden="true" />
+              {t('retryShort')}
+            </button>
+          </div>
+        )}
+
+        <div className="mt-auto flex flex-col gap-2.5 pt-2">
+          {role === 'owner' && (
+            <SecondaryButton onClick={markPaid} disabled={paid}>
+              {paid ? <Check size={18} strokeWidth={2.6} aria-hidden="true" /> : <Wallet size={18} strokeWidth={2.2} aria-hidden="true" />}
+              {paid ? t('markedPaid') : t('gotCashNow')}
+            </SecondaryButton>
           )}
-
-          <div className="flex flex-col gap-1.5">
-            <p className="text-[13px] font-bold text-muted">{t('whatCustomerSees', { name: customer.name })}</p>
-            <p className="max-w-[300px] self-start whitespace-pre-line rounded-[4px_18px_18px_18px] bg-surface px-3.5 py-2.5 text-sm font-medium leading-[1.45] shadow-card">
-              {preview}
-            </p>
-          </div>
-
-          <div className="mt-auto flex flex-col gap-2.5 pt-2">
-            {role === 'owner' && (
-              <SecondaryButton onClick={markPaid} disabled={paid} className="gap-2.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-amber-bg text-amber">
-                  {paid ? <Check size={18} strokeWidth={2.6} aria-hidden="true" /> : <Wallet size={18} strokeWidth={2.2} aria-hidden="true" />}
-                </span>
-                {paid ? t('markedPaid') : t('gotCashNow')}
-              </SecondaryButton>
-            )}
-            {payError && <p role="alert" className="text-center text-sm font-semibold text-danger">{payError}</p>}
-            <PrimaryButton onClick={onDone} className="min-h-[62px]">{t('done')}</PrimaryButton>
-          </div>
+          {payError && <p role="alert" className="text-center text-sm font-semibold text-danger">{payError}</p>}
+          <PrimaryButton onClick={onDone}>{t('done')}</PrimaryButton>
         </div>
       </div>
     </div>

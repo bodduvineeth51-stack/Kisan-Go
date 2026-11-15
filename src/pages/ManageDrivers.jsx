@@ -6,7 +6,7 @@ import { driverInviteLink } from '../lib/invite'
 import BottomNav from '../components/BottomNav'
 import AddButton from '../components/AddButton'
 import Avatar from '../components/Avatar'
-import { useTrans, LangToggle } from '../context/LangContext'
+import { useTrans } from '../context/LangContext'
 import { Sheet, Field, PhoneField, PrimaryButton, PageHeader, Spinner, ErrorCard, EmptyCard, Chip } from '../components/ui'
 
 // Owner only. Uses the Phase 2 objects as they are:
@@ -202,51 +202,53 @@ export default function ManageDrivers({ owner, activeTab, onTabChange }) {
         <PageHeader
           title={t('driversTab')}
           chip={loading ? null : t('driversCount', { n: drivers.filter((d) => d.status !== 'revoked').length })}
-          right={<LangToggle />}
         />
-        <p className="text-sm font-medium text-muted">{t('driversSub')}</p>
 
         {error && <ErrorCard message={error} onRetry={() => fetchDrivers()} />}
         {loading && <Spinner />}
         {!loading && !error && drivers.length === 0 && <EmptyCard title={t('noDrivers')} sub={t('noDriversSub')} />}
 
-        {!loading && drivers.map((d) => (
-          <div key={d.id} className="rounded-[18px] bg-surface px-3.5 py-2.5 shadow-card">
-            <div className="flex items-center gap-3">
-              <Avatar id={d.id} name={d.name} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-base font-bold text-ink">{d.name}</p>
-                <p className="text-[13px] font-medium text-muted">{formatPhone(d.phone)}</p>
-                <Chip small tone={STATUS_TONE[d.status]} className="mt-1">{t(`status_${d.status}`)}</Chip>
+        {!loading && drivers.length > 0 && (
+          <div className="overflow-hidden rounded-[20px] bg-surface shadow-card">
+            {drivers.map((d) => (
+              <div key={d.id} className="flex items-center gap-3 border-b border-divider py-2.5 pl-3.5 pr-2 last:border-b-0">
+                <Avatar name={d.name} />
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5">
+                    <span className="truncate text-base font-bold text-ink">{d.name}</span>
+                    {d.status !== 'active' && <Chip small tone={STATUS_TONE[d.status]} className="shrink-0">{t(`status_${d.status}`)}</Chip>}
+                  </p>
+                  <p className="truncate text-[13px] font-medium text-muted">{formatPhone(d.phone)}</p>
+                </div>
+                {d.status === 'revoked' ? (
+                  <button
+                    onClick={() => restore(d)}
+                    disabled={restoringId === d.id}
+                    className="min-h-11 rounded-[14px] bg-mint-100 px-3.5 text-sm font-bold text-primary disabled:opacity-60"
+                  >
+                    {t('restoreDriver')}
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setSharing(d)}
+                      aria-label={t('sendLinkWhatsApp')}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-mint-50 text-primary"
+                    >
+                      <MessageCircle size={20} strokeWidth={2.2} aria-hidden="true" />
+                    </button>
+                    <button
+                      onClick={() => setRevoking(d)}
+                      className="min-h-11 rounded-[14px] px-2.5 text-sm font-bold text-due"
+                    >
+                      {t('revokeDriver')}
+                    </button>
+                  </>
+                )}
               </div>
-              {d.status === 'revoked' ? (
-                <button
-                  onClick={() => restore(d)}
-                  disabled={restoringId === d.id}
-                  className="min-h-11 rounded-[14px] bg-mint-100 px-3.5 text-sm font-extrabold text-primary disabled:opacity-60"
-                >
-                  {t('restoreDriver')}
-                </button>
-              ) : (
-                <button
-                  onClick={() => setRevoking(d)}
-                  className="min-h-11 rounded-[14px] bg-due-bg px-3.5 text-sm font-extrabold text-due"
-                >
-                  {t('revokeDriver')}
-                </button>
-              )}
-            </div>
-            {d.status !== 'revoked' && (
-              <button
-                onClick={() => setSharing(d)}
-                className="mt-2.5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-mint-50 text-sm font-extrabold text-primary active:scale-[0.98]"
-              >
-                <MessageCircle size={18} strokeWidth={2.4} aria-hidden="true" />
-                {t('sendLinkWhatsApp')}
-              </button>
-            )}
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
       <AddButton onClick={() => setShowAdd(true)} label={t('addDriverShort')} ariaLabel={t('addDriver')} />

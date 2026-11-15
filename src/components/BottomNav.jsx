@@ -31,7 +31,7 @@ export default function BottomNav({ active, onChange, tabs = ['home', 'customers
             onClick={() => onChange(id)}
             aria-current={isActive ? 'page' : undefined}
             className={`flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl text-xs transition-colors ${
-              isActive ? 'bg-mint-100 font-extrabold text-primary' : 'font-semibold text-muted active:bg-mint-50'
+              isActive ? 'bg-mint-100 font-bold text-primary' : 'font-semibold text-muted active:bg-mint-50'
             }`}
           >
             <Icon size={22} strokeWidth={isActive ? 2.2 : 2} aria-hidden="true" />
