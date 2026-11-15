@@ -8,6 +8,7 @@ import Avatar from '../components/Avatar'
 import CustomerForm from '../components/CustomerForm'
 import { Logo, Spinner, ErrorCard, EmptyCard } from '../components/ui'
 import { useTrans, LangToggle } from '../context/LangContext'
+import { useWorkLabel } from '../lib/useWorkLabel'
 
 // Only the states that need the owner's attention get a label; a bill that
 // went out normally needs no extra text.
@@ -26,6 +27,7 @@ export default function Home({ owner, activeTab, onTabChange, onOpenCustomer }) 
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
   const [showForm, setShowForm]       = useState(false)
+  const { driverOf } = useWorkLabel(owner.id)
 
   async function fetchAll() {
     setLoading(true)
@@ -164,7 +166,9 @@ export default function Home({ owner, activeTab, onTabChange, onOpenCustomer }) 
                     <Avatar name={c?.name} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-base font-bold">{c?.name ?? '—'}</span>
-                      <span className="block text-[13px] font-medium text-muted">{formatHours(r.total_hours)}</span>
+                      <span className="block truncate text-[13px] font-medium text-muted">
+                        {[formatHours(r.total_hours), driverOf(r)].filter(Boolean).join(' · ')}
+                      </span>
                     </span>
                     <span className="flex flex-col items-end">
                       <span className="text-base font-extrabold">{formatMoney(r.amount)}</span>

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { formatMoney, formatHours } from '../lib/format'
 import { formatPhone, whatsappUrl } from '../lib/phone'
 import { customerBalances, daysSince } from '../lib/money'
+import { useWorkLabel } from '../lib/useWorkLabel'
 import CustomerForm from '../components/CustomerForm'
 import { BackButton, Chip, DateTile, ErrorCard, Spinner } from '../components/ui'
 import { useTrans } from '../context/LangContext'
@@ -17,6 +18,7 @@ export default function CustomerPage({ owner, customerId, onBack, onStartJob, on
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
+  const { workLabel } = useWorkLabel(owner.id)
 
   async function fetchAll() {
     setLoading(true)
@@ -159,8 +161,12 @@ export default function CustomerPage({ owner, customerId, onBack, onStartJob, on
                   <div key={r.id} className="flex items-center gap-3 border-b border-divider px-3.5 py-2.5 last:border-b-0">
                     <DateTile iso={r.created_at} />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-bold">{r.vehicle_type} · {formatHours(r.total_hours)}</span>
-                      <WhatsAppLine record={r} onRetry={() => retryWhatsapp(r)} />
+                      <span className="block truncate text-[15px] font-bold">{workLabel(r)}</span>
+                      <span className="flex items-center gap-1.5 text-[13px] font-medium text-muted">
+                        {formatHours(r.total_hours)}
+                        <span aria-hidden="true">·</span>
+                        <WhatsAppLine record={r} onRetry={() => retryWhatsapp(r)} />
+                      </span>
                     </span>
                     <span className="text-[15px] font-extrabold">{formatMoney(r.amount)}</span>
                   </div>
@@ -190,17 +196,17 @@ function WhatsAppLine({ record, onRetry }) {
   const { t } = useTrans()
   if (record.whatsapp_status === 'sent') {
     return (
-      <span className="flex items-center gap-1 text-xs font-semibold text-muted">
+      <span className="flex items-center gap-1 font-semibold">
         <Check size={13} strokeWidth={3} className="text-primary" aria-hidden="true" />
         {t('billSent')}
       </span>
     )
   }
   if (record.whatsapp_status === 'sending') {
-    return <span className="block text-xs font-semibold text-muted">{t('whatsappSending')}</span>
+    return <span className="font-semibold">{t('whatsappSending')}</span>
   }
   return (
-    <button onClick={onRetry} className="-my-2 flex min-h-11 items-center gap-1 text-xs font-bold text-due">
+    <button onClick={onRetry} className="-my-3 flex min-h-11 items-center gap-1 font-bold text-due">
       <RotateCw size={13} strokeWidth={2.6} aria-hidden="true" />
       {t('whatsappRetry')}
     </button>

@@ -270,7 +270,7 @@ Reuses the Android repo's Phase 2 database objects unchanged (`supabase/migratio
 
 ### Phase 15 — UI clean-up (November 15)
 - One language at a time: `Bilingual` component removed; no hard-coded Telugu in English mode (splash, login tagline, Stop button). Login/Profile setup lost the big Telugu/English buttons; `LoginHero` carries the small `LangToggle`. The pill is on Login, Profile setup, Home and Profile (owner + driver) only.
-- Customers list rows show the vehicles that worked for that customer (newest first, from `work_records.vehicle_type`); customers with no work show their phone instead. "Recorded by <driver>" lines were removed everywhere (`useRecordedBy.js` deleted) — the owner reads the vehicle instead.
+- Customers list rows show the vehicles that worked for that customer (newest first, from `work_records.vehicle_type`); customers with no work show their phone instead. Driver names are shown next to the vehicle ("Harvester 1 · Ravi") on customer rows, Home jobs and customer history via `lib/useWorkLabel.js` (`work_records.created_by` → this business's driver memberships). Jobs the owner recorded show only the vehicle.
 - Customer page: Call / WhatsApp buttons removed (Remind on WhatsApp kept), paid/billed progress bar removed (payment is all-or-nothing so it was always 0% or 100%).
 - Bill-sent screen no longer shows the WhatsApp message preview; `billMessage()` was deleted from `lib/money.js`. `buildMessage()` in the edge function is now the only copy of the text.
 - Home: shortcut tiles removed (duplicated + Add and Money). Job status chip only for "Not sent" / "Paid".

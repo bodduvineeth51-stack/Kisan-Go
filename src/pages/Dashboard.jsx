@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { formatMoney } from '../lib/format'
 import { formatPhone } from '../lib/phone'
 import { customerBalances } from '../lib/money'
+import { useWorkLabel } from '../lib/useWorkLabel'
 import BottomNav from '../components/BottomNav'
 import AddButton from '../components/AddButton'
 import Avatar from '../components/Avatar'
@@ -23,6 +24,7 @@ export default function Dashboard({ owner, activeTab, onTabChange, onOpenCustome
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState(initialFilter)
   const [showForm, setShowForm] = useState(false)
+  const { workLabel } = useWorkLabel(owner.id)
 
   useEffect(() => { fetchAll() }, [])
 
@@ -31,7 +33,7 @@ export default function Dashboard({ owner, activeTab, onTabChange, onOpenCustome
     setError('')
     const [cResult, rResult] = await Promise.all([
       supabase.from('customers').select('*').order('name', { ascending: true }),
-      supabase.from('work_records').select('id, customer_id, amount, vehicle_type, created_at').order('created_at', { ascending: false }),
+      supabase.from('work_records').select('id, customer_id, amount, vehicle_type, created_by, created_at').order('created_at', { ascending: false }),
     ])
     setLoading(false)
     if (cResult.error) { setError(cResult.error.message); return }
@@ -41,18 +43,18 @@ export default function Dashboard({ owner, activeTab, onTabChange, onOpenCustome
   }
 
   const balances = useMemo(() => customerBalances(customers, workRecords), [customers, workRecords])
-  // customer id → vehicles that did their work, most recently used first
-  // (records arrive newest first). Tells the owner which machine — and so
-  // which driver — worked for whom.
-  const vehiclesOf = useMemo(() => {
+  // customer id → who worked for them ("Harvester 1 · Ravi"), most recent
+  // first (records arrive newest first), each vehicle/driver pair once.
+  const workOf = useMemo(() => {
     const out = {}
     for (const r of workRecords) {
-      if (!r.vehicle_type) continue
+      const label = workLabel(r)
+      if (!label) continue
       const list = (out[r.customer_id] ??= [])
-      if (!list.includes(r.vehicle_type)) list.push(r.vehicle_type)
+      if (!list.includes(label)) list.push(label)
     }
     return out
-  }, [workRecords])
+  }, [workRecords, workLabel])
   const dueOf = (c) => balances[c.id]?.due ?? 0
   const owingCount = customers.filter((c) => dueOf(c) > 0).length
 
@@ -100,7 +102,7 @@ export default function Dashboard({ owner, activeTab, onTabChange, onOpenCustome
                 customer={c}
                 due={dueOf(c)}
                 billed={balances[c.id]?.billed ?? 0}
-                vehicles={vehiclesOf[c.id]}
+                work={workOf[c.id]}
                 onClick={() => onOpenCustomer(c)}
               />
             ))}
@@ -124,9 +126,9 @@ export default function Dashboard({ owner, activeTab, onTabChange, onOpenCustome
   )
 }
 
-// One row of the grouped customers list. Second line: the vehicles that
-// worked for this customer, or their number if no work is recorded yet.
-export function CustomerRow({ customer, due = 0, billed = 0, vehicles = [], onClick }) {
+// One row of the grouped customers list. Second line: the vehicle and
+// driver that worked for this customer, or their number if no work yet.
+export function CustomerRow({ customer, due = 0, billed = 0, work = [], onClick }) {
   const { t } = useTrans()
   return (
     <button
@@ -136,10 +138,10 @@ export function CustomerRow({ customer, due = 0, billed = 0, vehicles = [], onCl
       <Avatar name={customer.name} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-base font-bold">{customer.name}</span>
-        {vehicles.length > 0 ? (
+        {work.length > 0 ? (
           <span className="flex items-center gap-1 text-[13px] font-medium text-muted">
             <Tractor size={14} strokeWidth={2.2} className="shrink-0 text-primary" aria-hidden="true" />
-            <span className="truncate">{vehicles.join(' · ')}</span>
+            <span className="truncate">{work.join(', ')}</span>
           </span>
         ) : (
           <span className="block text-[13px] font-medium text-muted">{formatPhone(customer.phone)}</span>
