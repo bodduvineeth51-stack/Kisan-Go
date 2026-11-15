@@ -7,6 +7,7 @@ import Customers from './pages/Customers'
 import CustomerPage from './pages/CustomerPage'
 import EarningsScreen from './pages/EarningsScreen'
 import TimerScreen from './pages/TimerScreen'
+import BillSent from './pages/BillSent'
 
 function InstallBanner() {
   const [prompt, setPrompt] = useState(null)
@@ -68,7 +69,7 @@ function Loading() {
 export default function App() {
   const [session, setSession] = useState(undefined) // undefined = loading, null = signed out
   const [owner, setOwner] = useState(undefined)
-  // Full-screen layer over the tabs: { name: 'customer' | 'timer', customer } | null
+  // Full-screen layer over the tabs: { name: 'customer' | 'timer' | 'bill', customer, record? } | null
   const [view, setView] = useState(null)
   const [activeTab, setActiveTab] = useState('home') // 'home' | 'customers' | 'earnings'
   const [customerFilter, setCustomerFilter] = useState('all')
@@ -116,8 +117,18 @@ export default function App() {
       <TimerScreen
         customer={view.customer}
         owner={owner}
-        onComplete={() => setView({ name: 'customer', customer: view.customer })}
+        onComplete={(record) => setView({ name: 'bill', customer: view.customer, record })}
         onBack={() => setView({ name: 'customer', customer: view.customer })}
+        onChangeCustomer={() => { setView(null); setCustomerFilter('all'); setActiveTab('customers') }}
+      />
+    )
+  }
+  if (view?.name === 'bill') {
+    return (
+      <BillSent
+        record={view.record}
+        customer={view.customer}
+        onDone={() => { setView(null); setActiveTab('home') }}
       />
     )
   }

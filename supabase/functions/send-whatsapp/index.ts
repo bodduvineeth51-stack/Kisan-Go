@@ -20,7 +20,7 @@ function buildMessage(
       `వాహనం: ${vehicle}\n` +
       `సమయం: ${hours} గంటలు | రేటు: ₹${rate}/గం\n` +
       `మొత్తం: ₹${amount}\n` +
-      `— Kisan Go`
+      `— Sent via Kisan Go`
     )
   }
   return (
@@ -28,7 +28,7 @@ function buildMessage(
     `Vehicle: ${vehicle}\n` +
     `Time: ${hours} hrs | Rate: ₹${rate}/hr\n` +
     `Amount due: ₹${amount}\n` +
-    `— Kisan Go`
+    `— Sent via Kisan Go`
   )
 }
 
