@@ -246,6 +246,15 @@ Reuses the Android repo's Phase 2 database objects unchanged (`supabase/migratio
 - Driver screens (no reference design) reuse the same pieces: Home mirrors owner Home without money; driver customers list has a Start work button per row.
 - Browser tests: if a dev server is already running on 5173 Playwright reuses it, and the invite-link test fails because that server lacks `VITE_PUBLIC_APP_URL`. Stop the server first (or run on another port).
 
+### Phase 13 — Production database rollout (November 15)
+- The user moved all work to production (`kisan-go`, `pvcqrshhgfafkmfxigig`); kisan-go-dev is no longer used. The CLI is linked to production — check `supabase/.temp/project-ref` before every database command.
+- Backup taken first (outside the repo): `../prod-backups/2026-11-15/` (schema, data, roles). `supabase db dump` needs Docker running.
+- Production had no migration history; its schema matched `20261024105449_remote_schema.sql` exactly, so that one was marked applied with `migration repair`, then the roles, claim and profile migrations were pushed.
+- 13 duplicate test customers (and their 26 jobs) in the Vineeth Boddu account were deleted with the user's approval (newest per phone kept) so the one-phone-per-customer index could be created.
+- pgTAP suite passed 28/28 on production (rolled back). On production the CLI test login can't use the `extensions` schema, so run it from a temporary copy that adds `set local role postgres; set local search_path = public, extensions;` after `begin;`.
+- `send-whatsapp` deployed to production (`--use-api`); production has the Twilio secrets. It is compatible with the old web app, which already sends `record_id` with the login token.
+- `supabase functions list` hangs with this CLI version; `secrets list` and `functions deploy --use-api` work.
+
 ## Rules
 - All UI must follow `kisan-design/DESIGN.md` (colours, fonts, spacing,
   shapes, icons) and match the reference screens in `kisan-design/screens/`.
