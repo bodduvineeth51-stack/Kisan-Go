@@ -274,6 +274,7 @@ Reuses the Android repo's Phase 2 database objects unchanged (`supabase/migratio
 - Customer page: Call / WhatsApp buttons removed (Remind on WhatsApp kept), paid/billed progress bar removed (payment is all-or-nothing so it was always 0% or 100%).
 - Bill-sent screen no longer shows the WhatsApp message preview; `billMessage()` was deleted from `lib/money.js`. `buildMessage()` in the edge function is now the only copy of the text.
 - Home: shortcut tiles removed (duplicated + Add and Money). Job status chip only for "Not sent" / "Paid".
+- Several vehicles of one type: the vehicle NAME (`vehicle_rates[].type`, unique per owner) is what identifies a machine and what `work_records.vehicle_type` stores. Profile setup has a "How many?" counter per type → "Harvester 1", "Harvester 2" (`numberedNames` in `lib/vehicles.js`). The timer opens with the last vehicle used on that phone (`localStorage kisan_last_vehicle`) instead of always the first. Home groups today's jobs under each vehicle; Money has a "By vehicle" list for the period (idle vehicles included). Renaming a vehicle doesn't change old records — they keep the old name.
 - Look: neutral background, hairline-edged cards, grouped lists with dividers, single-colour avatars, no decorative circles. Tokens in `src/index.css`; rules at the top of `kisan-design/DESIGN.md`.
 
 ## Rules

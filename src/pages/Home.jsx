@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Tractor } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { formatMoney, formatHours } from '../lib/format'
 import BottomNav from '../components/BottomNav'
@@ -76,6 +76,17 @@ export default function Home({ owner, activeTab, onTabChange, onOpenCustomer }) 
   const dateLabel = new Date().toLocaleDateString(lang === 'te' ? 'te-IN' : 'en-IN', {
     weekday: 'long', day: 'numeric', month: 'long',
   })
+  // Today's jobs grouped by vehicle, busiest-most-recent vehicle first, so
+  // an owner with two harvesters sees what each one did.
+  const byVehicle = []
+  for (const r of todayRecs) {
+    let group = byVehicle.find((g) => g.vehicle === r.vehicle_type)
+    if (!group) byVehicle.push(group = { vehicle: r.vehicle_type, jobs: [], hours: 0, amount: 0 })
+    group.jobs.push(r)
+    group.hours += Number(r.total_hours)
+    group.amount += Number(r.amount)
+  }
+
   const jobsLabel = t(todayRecs.length === 1 ? 'jobCount' : 'jobsCount', { n: todayRecs.length })
 
   return (
@@ -135,9 +146,14 @@ export default function Home({ owner, activeTab, onTabChange, onOpenCustomer }) 
             <EmptyCard title={t('noJobsToday')} sub={t('noJobsTodaySub')} />
           )}
 
-          {!loading && todayRecs.length > 0 && (
-            <div className="overflow-hidden rounded-[20px] bg-surface shadow-card">
-              {todayRecs.map((r) => {
+          {!loading && byVehicle.map((g) => (
+            <div key={g.vehicle} className="overflow-hidden rounded-[20px] bg-surface shadow-card">
+              <div className="flex items-center gap-2 border-b border-divider bg-mint-50 px-3.5 py-2.5">
+                <Tractor size={18} strokeWidth={2.2} className="shrink-0 text-primary" aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate text-[15px] font-extrabold">{g.vehicle}</span>
+                <span className="text-[13px] font-semibold text-muted">{formatHours(g.hours)} · {formatMoney(g.amount)}</span>
+              </div>
+              {g.jobs.map((r) => {
                 const c = customerMap[r.customer_id]
                 return (
                   <button
@@ -148,9 +164,7 @@ export default function Home({ owner, activeTab, onTabChange, onOpenCustomer }) 
                     <Avatar name={c?.name} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-base font-bold">{c?.name ?? '—'}</span>
-                      <span className="block text-[13px] font-medium text-muted">
-                        {r.vehicle_type} · {formatHours(r.total_hours)}
-                      </span>
+                      <span className="block text-[13px] font-medium text-muted">{formatHours(r.total_hours)}</span>
                     </span>
                     <span className="flex flex-col items-end">
                       <span className="text-base font-extrabold">{formatMoney(r.amount)}</span>
@@ -160,7 +174,7 @@ export default function Home({ owner, activeTab, onTabChange, onOpenCustomer }) 
                 )
               })}
             </div>
-          )}
+          ))}
         </div>
       </div>
 

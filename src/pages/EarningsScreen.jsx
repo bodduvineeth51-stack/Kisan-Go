@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
-import { MessageCircle } from 'lucide-react'
+import { MessageCircle, Tractor } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
-import { formatMoney } from '../lib/format'
+import { formatMoney, formatHours } from '../lib/format'
 import { whatsappUrl } from '../lib/phone'
 import { customerBalances, daysSince, periodStart } from '../lib/money'
 import BottomNav from '../components/BottomNav'
@@ -26,7 +26,7 @@ export default function EarningsScreen({ owner, activeTab, onTabChange, onOpenCu
     setError('')
     const [cRes, rRes] = await Promise.all([
       supabase.from('customers').select('id, name, phone, is_paid'),
-      supabase.from('work_records').select('id, customer_id, amount, created_at'),
+      supabase.from('work_records').select('id, customer_id, amount, total_hours, vehicle_type, created_at'),
     ])
     setLoading(false)
     if (cRes.error) { setError(cRes.error.message); return }
@@ -37,7 +37,7 @@ export default function EarningsScreen({ owner, activeTab, onTabChange, onOpenCu
 
   useEffect(() => { fetchAll() }, [])
 
-  const { totals, jobs, owers } = useMemo(() => {
+  const { totals, jobs, owers, vehicles } = useMemo(() => {
     const paidIds = new Set(customers.filter((c) => c.is_paid).map((c) => c.id))
     const from = periodStart(period)
     const recs = from ? workRecords.filter((r) => new Date(r.created_at) >= from) : workRecords
@@ -50,8 +50,21 @@ export default function EarningsScreen({ owner, activeTab, onTabChange, onOpenCu
       .map((c) => ({ customer: c, ...balances[c.id] }))
       .sort((a, b) => b.due - a.due)
 
-    return { totals: { earned, collected, pending: earned - collected }, jobs: recs.length, owers }
-  }, [customers, workRecords, period])
+    // Every current vehicle (idle ones too), then any older vehicle names
+    // that still have work in this period.
+    const byName = new Map(owner.vehicle_rates.map((v) => [v.type, { name: v.type, jobs: 0, hours: 0, amount: 0 }]))
+    for (const r of recs) {
+      const name = r.vehicle_type || '—'
+      if (!byName.has(name)) byName.set(name, { name, jobs: 0, hours: 0, amount: 0 })
+      const v = byName.get(name)
+      v.jobs += 1
+      v.hours += Number(r.total_hours) || 0
+      v.amount += Number(r.amount) || 0
+    }
+    const vehicles = [...byName.values()].sort((a, b) => b.amount - a.amount)
+
+    return { totals: { earned, collected, pending: earned - collected }, jobs: recs.length, owers, vehicles }
+  }, [customers, workRecords, period, owner.vehicle_rates])
 
   const paidPct = totals.earned > 0 ? Math.round((totals.collected / totals.earned) * 100) : 0
 
@@ -101,6 +114,29 @@ export default function EarningsScreen({ owner, activeTab, onTabChange, onOpenCu
             </div>
           </div>
         </div>
+
+        {/* By vehicle */}
+        {!loading && !error && (
+          <div className="flex flex-col gap-2">
+            <h2 className="text-[17px] font-extrabold">{t('byVehicle')}</h2>
+            <div className="overflow-hidden rounded-[20px] bg-surface shadow-card">
+              {vehicles.map((v) => (
+                <div key={v.name} className="flex items-center gap-3 border-b border-divider px-3.5 py-3 last:border-b-0">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-mint-100 text-primary">
+                    <Tractor size={20} strokeWidth={2.2} aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] font-bold">{v.name}</span>
+                    <span className="block text-xs font-medium text-muted">
+                      {v.jobs ? `${t(v.jobs === 1 ? 'jobCount' : 'jobsCount', { n: v.jobs })} · ${formatHours(v.hours)}` : t('noVehicleWork')}
+                    </span>
+                  </span>
+                  <span className={`text-[15px] font-extrabold ${v.jobs ? 'text-ink' : 'text-muted'}`}>{formatMoney(v.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Who owes the most */}
         <div className="flex flex-col gap-2">

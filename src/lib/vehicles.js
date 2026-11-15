@@ -23,3 +23,21 @@ export function validateVehicles(vehicles) {
 export function normalizeVehicles(vehicles) {
   return vehicles.map(v => ({ type: v.type.trim(), hourly_rate: Number(v.hourly_rate) }))
 }
+
+// Names for `count` vehicles of one type: one stays "Harvester", several
+// become "Harvester 1", "Harvester 2", … so each machine (and its work)
+// can be told apart. Vehicle names are what work_records store.
+export function numberedNames(type, count) {
+  if (count <= 1) return [type]
+  return Array.from({ length: count }, (_, i) => `${type} ${i + 1}`)
+}
+
+// Last vehicle used on this phone — a driver usually drives the same one,
+// so the timer opens with it instead of always picking the first vehicle.
+const LAST_VEHICLE_KEY = 'kisan_last_vehicle'
+export function lastVehicle() {
+  try { return localStorage.getItem(LAST_VEHICLE_KEY) } catch { return null }
+}
+export function rememberVehicle(name) {
+  try { localStorage.setItem(LAST_VEHICLE_KEY, name) } catch { /* storage blocked */ }
+}

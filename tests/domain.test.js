@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { driverInviteLink } from '../src/lib/invite.js'
 import { localDigits } from '../src/lib/phone.js'
-import { validateVehicles } from '../src/lib/vehicles.js'
+import { numberedNames, validateVehicles } from '../src/lib/vehicles.js'
 import translations from '../src/lib/i18n.js'
 
 test('invite links normalize phones and use the public HTTPS app', () => {
@@ -31,4 +31,11 @@ test('every English translation has Telugu text with the same placeholders', () 
     const vars = text => [...text.matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort()
     assert.deepEqual(vars(translations.en[key]), vars(translations.te[key]), key)
   }
+})
+
+test('several vehicles of one type get numbered, distinct names', () => {
+  assert.deepEqual(numberedNames('Harvester', 1), ['Harvester'])
+  assert.deepEqual(numberedNames('Harvester', 2), ['Harvester 1', 'Harvester 2'])
+  const vehicles = numberedNames('Harvester', 3).map((type) => ({ type, hourly_rate: 2000 }))
+  assert.equal(validateVehicles(vehicles), null)
 })

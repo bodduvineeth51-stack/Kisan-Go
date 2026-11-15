@@ -3,6 +3,7 @@ import { Check, Mic, Plus, RotateCw, Wallet, X } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { driverRpc, AccessRemovedError } from '../lib/roles'
 import { formatMoney, formatHours } from '../lib/format'
+import { lastVehicle, rememberVehicle } from '../lib/vehicles'
 import VoiceEntry from '../components/VoiceEntry'
 import Avatar from '../components/Avatar'
 import { BackButton, ChoiceButton, Field, PrimaryButton, SecondaryButton, Sheet } from '../components/ui'
@@ -42,7 +43,16 @@ export default function TimerScreen({
   onAccessRemoved = () => {},
 }) {
   const { t, lang } = useTrans()
-  const [selectedType, setSelectedType] = useState(vehicleRates[0]?.type ?? null)
+  // Open with the vehicle this phone used last (an owner with two
+  // harvesters must not have every job land on "Harvester 1").
+  const [selectedType, setSelectedTypeState] = useState(() => {
+    const last = lastVehicle()
+    return vehicleRates.some((v) => v.type === last) ? last : vehicleRates[0]?.type ?? null
+  })
+  function setSelectedType(type) {
+    setSelectedTypeState(type)
+    rememberVehicle(type)
+  }
   // Follows refreshed rates; null if the owner removed this vehicle meanwhile.
   const vehicle = vehicleRates.find((v) => v.type === selectedType) ?? null
   const [sessions, setSessions] = useState([])

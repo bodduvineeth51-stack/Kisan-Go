@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Check, ChevronLeft } from 'lucide-react'
+import { Check, ChevronLeft, Minus, Plus } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { useTrans } from '../context/LangContext'
 import { toE164 } from '../lib/phone'
-import { VEHICLE_TYPES, validateVehicles } from '../lib/vehicles'
+import { VEHICLE_TYPES, numberedNames, validateVehicles } from '../lib/vehicles'
 import { ChoiceButton, Field, FieldLabel, PrimaryButton } from '../components/ui'
 import { LoginHero } from './Login'
 
@@ -12,8 +12,13 @@ export default function ProfileSetup({ user, onComplete, onBack }) {
   const [name, setName] = useState('')
   const [selectedTypes, setSelectedTypes] = useState([])
   const [rates, setRates] = useState({})
+  const [counts, setCounts] = useState({}) // type → how many of that vehicle
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  function changeCount(type, delta) {
+    setCounts((prev) => ({ ...prev, [type]: Math.min(9, Math.max(1, (prev[type] ?? 1) + delta)) }))
+  }
 
   function toggleType(type) {
     setSelectedTypes((prev) =>
@@ -26,7 +31,10 @@ export default function ProfileSetup({ user, onComplete, onBack }) {
     setError('')
     if (!name.trim()) { setError(t('enterName')); return }
     if (selectedTypes.length === 0) { setError(t('selectVehicleErr')); return }
-    const vehicleRates = selectedTypes.map((type) => ({ type, hourly_rate: Number(rates[type]) }))
+    // Two harvesters become "Harvester 1" and "Harvester 2" (same rate;
+    // each can be changed later on the Profile tab).
+    const vehicleRates = selectedTypes.flatMap((type) =>
+      numberedNames(type, counts[type] ?? 1).map((name) => ({ type: name, hourly_rate: Number(rates[type]) })))
     const invalid = validateVehicles(vehicleRates)
     if (invalid) { setError(t(invalid)); return }
     setLoading(true)
@@ -92,26 +100,52 @@ export default function ProfileSetup({ user, onComplete, onBack }) {
           {selectedTypes.length > 0 && (
             <div className="flex flex-col gap-2.5">
               <FieldLabel>{t('hourlyRate')}</FieldLabel>
-              {selectedTypes.map((type) => (
-                <label
-                  key={type}
-                  htmlFor={`rate-${type}`}
-                  className="flex h-[58px] items-center gap-3 rounded-[18px] border-2 border-border bg-mint-50 pl-4 pr-1.5 focus-within:border-primary-bright"
-                >
-                  <span className="min-w-0 flex-1 truncate text-base font-bold text-ink">{type}</span>
-                  <span className="text-base font-bold text-primary">₹</span>
-                  <input
-                    id={`rate-${type}`}
-                    type="number"
-                    inputMode="decimal"
-                    min="1"
-                    placeholder={t('ratePlaceholder')}
-                    value={rates[type] ?? ''}
-                    onChange={(e) => setRates((prev) => ({ ...prev, [type]: e.target.value }))}
-                    className="h-11 w-28 rounded-xl bg-surface px-3 text-right text-[17px] font-bold text-ink outline-none"
-                  />
-                </label>
-              ))}
+              {selectedTypes.map((type) => {
+                const count = counts[type] ?? 1
+                return (
+                  <div key={type} className="flex flex-col gap-2 rounded-[18px] border-2 border-border bg-mint-50 px-4 py-3 focus-within:border-primary-bright">
+                    <label htmlFor={`rate-${type}`} className="flex items-center gap-3">
+                      <span className="min-w-0 flex-1 truncate text-base font-bold text-ink">{type}</span>
+                      <span className="text-base font-bold text-primary">₹</span>
+                      <input
+                        id={`rate-${type}`}
+                        type="number"
+                        inputMode="decimal"
+                        min="1"
+                        placeholder={t('ratePlaceholder')}
+                        value={rates[type] ?? ''}
+                        onChange={(e) => setRates((prev) => ({ ...prev, [type]: e.target.value }))}
+                        className="h-11 w-28 rounded-xl bg-surface px-3 text-right text-[17px] font-bold text-ink outline-none"
+                      />
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="flex-1 text-sm font-semibold text-muted">{t('howMany')}</span>
+                      <button
+                        type="button"
+                        onClick={() => changeCount(type, -1)}
+                        disabled={count <= 1}
+                        aria-label={`${type} −1`}
+                        className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-primary disabled:opacity-40"
+                      >
+                        <Minus size={18} strokeWidth={2.6} aria-hidden="true" />
+                      </button>
+                      <span className="w-6 text-center text-lg font-extrabold tabular-nums" aria-live="polite">{count}</span>
+                      <button
+                        type="button"
+                        onClick={() => changeCount(type, 1)}
+                        disabled={count >= 9}
+                        aria-label={`${type} +1`}
+                        className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-primary disabled:opacity-40"
+                      >
+                        <Plus size={18} strokeWidth={2.6} aria-hidden="true" />
+                      </button>
+                    </div>
+                    {count > 1 && (
+                      <p className="text-[13px] font-medium text-muted">{numberedNames(type, count).join(' · ')}</p>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
 
