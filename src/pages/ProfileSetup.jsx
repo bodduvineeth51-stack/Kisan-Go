@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ChevronLeft, Check } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
-import { useTrans, LangToggle } from '../context/LangContext'
+import { useTrans, LangButton } from '../context/LangContext'
 
 const VEHICLE_TYPES = [
   'Tractor', 'Harvester', 'Rotavator', 'Trailer',
@@ -44,93 +44,98 @@ export default function ProfileSetup({ user, onComplete, onBack }) {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-gray-50 px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm">
-        <button
-          type="button"
-          onClick={onBack}
-          className="-ml-2 mb-3 flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft size={18} strokeWidth={2.2} aria-hidden="true" />
-          {t('changePhone')}
-        </button>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{t('profileTitle')}</h1>
-            <p className="mt-1 text-sm text-gray-500">{t('profileSub')}</p>
-          </div>
-          <LangToggle variant="light" />
+    <div className="min-h-svh">
+      <form
+        onSubmit={handleSubmit}
+        className="mx-auto flex w-full max-w-lg flex-col gap-4 px-5 pb-[calc(24px+env(safe-area-inset-bottom))] pt-4"
+      >
+        <div className="flex h-11 items-center justify-between">
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label={t('changePhone')}
+            className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-surface text-ink shadow-[0_2px_10px_rgba(15,42,26,0.08)]"
+          >
+            <ChevronLeft size={22} strokeWidth={2.4} aria-hidden="true" />
+          </button>
+          <LangButton />
         </div>
 
-        <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-              {t('yourName')}
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t('namePlaceholder')}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600"
-            />
-          </div>
+        <div>
+          <h1 className="text-[28px] font-extrabold leading-[1.15] tracking-[-0.8px]">{t('profileTitle')}</h1>
+          <p className="mt-1 text-[15px] font-medium text-muted">{t('profileSub')}</p>
+        </div>
 
-          <div>
-            <span className="block text-sm font-medium text-gray-700">
-              {t('vehicleSection')}
-            </span>
-            <div className="mt-2 space-y-2">
-              {VEHICLE_TYPES.map((type) => {
-                const checked = selectedTypes.includes(type)
-                return (
-                  <div
-                    key={type}
-                    className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2"
+        <div className="flex flex-col gap-2.5">
+          <label htmlFor="name" className="text-[15px] font-bold">{t('yourName')}</label>
+          <input
+            id="name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('namePlaceholder')}
+            className="h-14 rounded-[18px] border-2 border-border bg-surface px-4 text-lg font-bold outline-none placeholder:font-semibold placeholder:text-muted/50 focus:border-primary-bright"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2.5">
+          <span className="text-[15px] font-bold">{t('vehicleSection')}</span>
+          {VEHICLE_TYPES.map((type) => {
+            const checked = selectedTypes.includes(type)
+            return (
+              <div
+                key={type}
+                className={`overflow-hidden rounded-[18px] border-2 ${
+                  checked ? 'border-primary-bright bg-mint-100' : 'border-border bg-surface'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleType(type)}
+                  aria-pressed={checked}
+                  className="flex h-14 w-full items-center gap-3 px-4 text-left"
+                >
+                  <span
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-2 ${
+                      checked ? 'border-primary bg-primary text-white' : 'border-border bg-surface'
+                    }`}
                   >
-                    <input
-                      id={`vt-${type}`}
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleType(type)}
-                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-600"
-                    />
-                    <label htmlFor={`vt-${type}`} className="flex-1 text-sm text-gray-700">
-                      {type}
-                    </label>
-                    {checked && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-400">₹</span>
-                        <input
-                          type="number"
-                          min="1"
-                          placeholder={t('ratePlaceholder')}
-                          value={rates[type] ?? ''}
-                          onChange={(e) =>
-                            setRates((prev) => ({ ...prev, [type]: e.target.value }))
-                          }
-                          className="w-24 rounded-md border border-gray-300 px-2 py-1 text-sm outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+                    {checked && <Check size={16} strokeWidth={3.2} aria-hidden="true" />}
+                  </span>
+                  <span className={`text-base ${checked ? 'font-extrabold text-primary' : 'font-semibold'}`}>{type}</span>
+                </button>
+                {checked && (
+                  <label className="flex items-center gap-2 px-4 pb-3">
+                    <span className="text-sm font-bold text-primary">{t('ratePlaceholder')}</span>
+                    <span className="ml-auto flex h-12 items-center rounded-2xl bg-surface pl-3">
+                      <span className="text-lg font-bold text-muted">₹</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        value={rates[type] ?? ''}
+                        onChange={(e) => setRates((prev) => ({ ...prev, [type]: e.target.value }))}
+                        aria-label={`${type} ${t('ratePlaceholder')}`}
+                        className="h-full w-28 bg-transparent px-2 text-lg font-extrabold outline-none"
+                      />
+                    </span>
+                  </label>
+                )}
+              </div>
+            )
+          })}
+        </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white transition hover:bg-green-700 disabled:opacity-60"
-          >
-            {loading ? t('savingProfile') : t('saveProfile')}
-          </button>
-        </form>
-      </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="mt-2 h-16 rounded-[20px] bg-primary text-xl font-extrabold text-white shadow-green disabled:opacity-60"
+        >
+          {loading ? t('savingProfile') : t('saveProfile')}
+        </button>
+      </form>
     </div>
   )
 }

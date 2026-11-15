@@ -6,36 +6,8 @@ import BottomNav from '../components/BottomNav'
 import AddButton from '../components/AddButton'
 import Avatar from '../components/Avatar'
 import CustomerForm from '../components/CustomerForm'
-import { useTrans } from '../context/LangContext'
-
-function Logo() {
-  return (
-    <div className="flex items-center gap-2.5">
-      <svg width="38" height="38" viewBox="0 0 36 36" aria-hidden="true">
-        <rect width="36" height="36" rx="11" fill="#15803D" />
-        <circle cx="18" cy="21" r="8" fill="none" stroke="#BEF264" strokeWidth="3" />
-        <circle cx="18" cy="21" r="2.5" fill="#BEF264" />
-        <path d="M18 13c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5z" fill="#FFFFFF" />
-      </svg>
-      <span className="text-[22px] font-extrabold tracking-[-0.5px] text-ink">
-        Kisan<span className="text-primary-bright">Go</span>
-      </span>
-    </div>
-  )
-}
-
-function LangButton() {
-  const { t, lang, setLang } = useTrans()
-  return (
-    <button
-      onClick={() => setLang(lang === 'en' ? 'te' : 'en')}
-      aria-label={t('changeLanguage')}
-      className="h-11 rounded-[22px] bg-surface px-4 text-sm font-bold text-primary shadow-[0_2px_10px_rgba(15,42,26,0.08)]"
-    >
-      తె | EN
-    </button>
-  )
-}
+import Logo from '../components/Logo'
+import { useTrans, LangButton } from '../context/LangContext'
 
 function Tile({ icon: Icon, iconClass, label, onClick }) {
   return (

@@ -9,8 +9,7 @@ const ALL_TABS = [
 ]
 
 // Floating bottom bar (DESIGN.md → "Floating bottom bar").
-// `tabs` limits which tabs show — More is hidden until its screen exists.
-export default function BottomNav({ active, onChange, tabs = ['home', 'customers', 'earnings'] }) {
+export default function BottomNav({ active, onChange, tabs = ['home', 'customers', 'earnings', 'more'] }) {
   const { t } = useTrans()
   const visible = ALL_TABS.filter((tab) => tabs.includes(tab.id))
 

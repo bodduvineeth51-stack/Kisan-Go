@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient'
+import { LogoMark } from './components/Logo'
 import Login from './pages/Login'
 import ProfileSetup from './pages/ProfileSetup'
 import Home from './pages/Home'
 import Customers from './pages/Customers'
 import CustomerPage from './pages/CustomerPage'
 import EarningsScreen from './pages/EarningsScreen'
+import MoreScreen from './pages/MoreScreen'
 import TimerScreen from './pages/TimerScreen'
 import BillSent from './pages/BillSent'
 
@@ -34,34 +36,30 @@ function InstallBanner() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-3 bg-green-700 px-4 py-3 shadow-lg">
-      <p className="text-sm font-medium text-white">Install Kisan Go on your phone</p>
-      <div className="flex shrink-0 gap-2">
-        <button
-          onClick={() => setDismissed(true)}
-          className="rounded-lg px-3 py-1.5 text-xs font-medium text-green-200 hover:text-white"
-        >
-          Not now
-        </button>
-        <button
-          onClick={install}
-          className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-green-700 hover:bg-green-50"
-        >
-          Install
-        </button>
-      </div>
+    <div className="fixed inset-x-3 top-[calc(12px+env(safe-area-inset-top))] z-50 mx-auto flex max-w-lg items-center gap-3 rounded-[20px] bg-ink px-4 py-2.5 shadow-nav">
+      <LogoMark size={32} />
+      <p className="flex-1 text-sm font-bold text-white">Install Kisan Go on your phone</p>
+      <button onClick={() => setDismissed(true)} className="min-h-11 px-2 text-sm font-semibold text-mint-200">
+        Not now
+      </button>
+      <button onClick={install} className="h-11 rounded-2xl bg-lime px-4 text-sm font-extrabold text-ink">
+        Install
+      </button>
     </div>
   )
 }
 
 function Loading() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-5 bg-green-600">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-primary">
+      <LogoMark size={72} />
       <div className="text-center">
-        <h1 className="text-4xl font-black tracking-tight text-white">Kisan Go</h1>
-        <p className="mt-1 text-sm text-green-200">కిసాన్ గో</p>
+        <h1 className="text-[40px] font-extrabold leading-none tracking-[-1.5px] text-white">
+          Kisan<span className="text-lime">Go</span>
+        </h1>
+        <p className="mt-2 text-base font-medium text-mint-100">కిసాన్ గో</p>
       </div>
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-400 border-t-white" />
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-lime" />
     </div>
   )
 }
@@ -71,7 +69,7 @@ export default function App() {
   const [owner, setOwner] = useState(undefined)
   // Full-screen layer over the tabs: { name: 'customer' | 'timer' | 'bill', customer, record? } | null
   const [view, setView] = useState(null)
-  const [activeTab, setActiveTab] = useState('home') // 'home' | 'customers' | 'earnings'
+  const [activeTab, setActiveTab] = useState('home') // 'home' | 'customers' | 'earnings' | 'more'
   const [customerFilter, setCustomerFilter] = useState('all')
 
   useEffect(() => {
@@ -157,6 +155,7 @@ export default function App() {
     <>
       {activeTab === 'home' && <Home {...sharedProps} />}
       {activeTab === 'earnings' && <EarningsScreen {...sharedProps} />}
+      {activeTab === 'more' && <MoreScreen {...sharedProps} />}
       {activeTab === 'customers' && <Customers {...sharedProps} initialFilter={customerFilter} />}
       <InstallBanner />
     </>

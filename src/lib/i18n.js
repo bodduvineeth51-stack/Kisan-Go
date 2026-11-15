@@ -1,18 +1,13 @@
 const translations = {
   en: {
     // Common
-    loading: 'Loading…',
     retry: 'Tap to retry',
     save: 'Save',
     cancel: 'Cancel',
     signOut: 'Sign out',
-    hrShort: 'hr',
 
     // Login
-    tagline: 'Work smarter on the farm',
     phoneLabel: 'Mobile number',
-    phonePlaceholder: 'Enter your 10-digit mobile number',
-    sendOtp: 'Send OTP',
     sending: 'Sending…',
     otpLabel: 'Enter OTP sent to +91{phone}',
     verifyBtn: 'Verify & continue',
@@ -40,12 +35,10 @@ const translations = {
     validRateErr: 'Enter a valid hourly rate for each selected vehicle.',
 
     // Dashboard
-    unpaidCount: '{n} unpaid customer{s}',
     searchPlaceholder: 'Search name or phone',
     noCustomers: 'No customers yet.',
     noCustomersSub: 'Tap "+ Add" to add your first farmer.',
     noSearchMatch: 'No customers match "{q}".',
-    addCustomer: '+ Add customer',
     newCustomer: 'New customer',
     editCustomer: 'Edit customer',
     customerNameLabel: 'Customer name',
@@ -55,45 +48,23 @@ const translations = {
 
     // CustomerCard
     paid: 'Paid',
-    unpaid: 'Unpaid',
-    startJob: '▶ Start job',
-    whatsappSent: '✓ Sent on WhatsApp',
     whatsappSending: 'Sending…',
-    whatsappRetry: '↺ Retry WhatsApp',
 
     // TimerScreen
     jobFor: 'Job for',
-    selectVehicleTitle: 'Select vehicle',
-    recordingLabel: 'Recording…',
-    startBtn: '▶  START',
-    stopBtn: '⬛  STOP',
-    vehicleHint: 'Select a vehicle above to start',
-    sessionCount: '{n} session',
-    sessionCountPlural: '{n} sessions',
-    totalHrs: '{h} hrs total',
-    totalMin: '{m} min total',
-    manualSessionTitle: 'Manual session',
     startLabel: 'Start',
     stopLabel: 'Stop',
-    addManually: '+ Add manually',
-    addByVoice: '🎤 Add by voice',
     savingLabel: 'Saving…',
     sendingWaLabel: 'Sending WhatsApp…',
-    submitJob: 'Submit job record',
     errSelectVehicle: 'Select a vehicle first.',
     errAddSession: 'Add at least one session.',
-    errStopFirst: 'Stop the current session before submitting.',
     errPickTimes: 'Pick both start and stop times.',
     errInvalidDate: 'Invalid date.',
     errStopAfterStart: 'Stop must be after start.',
 
     // EarningsScreen
     todaySection: 'Today',
-    seasonSection: 'This Season (All Time)',
-    earnedLabel: 'Earned',
     collectedLabel: 'Collected',
-    pendingLabel: 'Pending',
-    pendingCollections: 'Pending Collections ({n})',
     allPaidMsg: 'All customers are paid up!',
 
     // Home
@@ -167,6 +138,20 @@ const translations = {
     paymentRecorded: 'Payment recorded',
     done: 'Done',
 
+    // Login + Money + More
+    codeHint: 'We will send a 6-digit code to this number.',
+    getCode: 'Get code',
+    dataPrivate: 'Your data is private. Only you can see it.',
+    thisWeek: 'This week',
+    seasonTab: 'Season',
+    totalEarned: 'Total earned',
+    toCollect: 'To collect',
+    collectedPct: '{n}% collected',
+    whoOwesMost: 'Who owes the most',
+    waitingDays: 'Waiting {n} days',
+    remindOnWhatsapp: 'Remind {name} on WhatsApp',
+    yourVehicles: 'Your vehicles',
+
     // BottomNav
     homeTab: 'Home',
     customersTab: 'Customers',
@@ -201,18 +186,13 @@ const translations = {
 
   te: {
     // Common
-    loading: 'లోడ్ అవుతోంది…',
     retry: 'మళ్ళీ ప్రయత్నించు',
     save: 'సేవ్',
     cancel: 'రద్దు',
     signOut: 'సైన్ అవుట్',
-    hrShort: 'గం',
 
     // Login
-    tagline: 'పొలం పనిని తేలికగా చేయండి',
     phoneLabel: 'మొబైల్ నంబర్',
-    phonePlaceholder: '10 అంకెల నంబర్ వేయండి',
-    sendOtp: 'OTP పంపు',
     sending: 'పంపుతోంది…',
     otpLabel: '+91{phone} కి పంపిన OTP వేయండి',
     verifyBtn: 'OTP చెక్ చేయి',
@@ -240,12 +220,10 @@ const translations = {
     validRateErr: 'ఎంచుకున్న వాహనానికి రేటు వేయండి.',
 
     // Dashboard
-    unpaidCount: '{n} కస్టమర్{s} పేమెంట్ బాకీ',
     searchPlaceholder: 'పేరు లేదా నంబర్ వెతకండి',
     noCustomers: 'ఇంకా కస్టమర్లు లేరు.',
     noCustomersSub: 'మొదటి రైతును చేర్చడానికి "+ జోడించు" నొక్కండి.',
     noSearchMatch: '"{q}" కి ఏ కస్టమర్ దొరకలేదు.',
-    addCustomer: '+ కస్టమర్ జోడించు',
     newCustomer: 'కొత్త కస్టమర్',
     editCustomer: 'కస్టమర్ మార్చు',
     customerNameLabel: 'కస్టమర్ పేరు',
@@ -255,45 +233,23 @@ const translations = {
 
     // CustomerCard
     paid: 'చెల్లించారు',
-    unpaid: 'బాకీ',
-    startJob: '▶ పని మొదలు',
-    whatsappSent: '✓ WhatsApp లో పంపారు',
     whatsappSending: 'పంపుతున్నారు…',
-    whatsappRetry: '↺ WhatsApp మళ్ళీ పంపు',
 
     // TimerScreen
     jobFor: 'పని కోసం',
-    selectVehicleTitle: 'వాహనం ఎంచుకోండి',
-    recordingLabel: 'రికార్డ్ అవుతోంది…',
-    startBtn: '▶  మొదలు',
-    stopBtn: '⬛  ఆపు',
-    vehicleHint: 'పైన వాహనం ఎంచుకోండి',
-    sessionCount: '{n} సెషన్',
-    sessionCountPlural: '{n} సెషన్లు',
-    totalHrs: '{h} గంటలు మొత్తం',
-    totalMin: '{m} నిమిషాలు మొత్తం',
-    manualSessionTitle: 'సమయం చేర్చు',
     startLabel: 'మొదలు',
     stopLabel: 'ఆపు',
-    addManually: '+ చేతితో జోడించు',
-    addByVoice: '🎤 గొంతుతో జోడించు',
     savingLabel: 'సేవ్ అవుతోంది…',
     sendingWaLabel: 'WhatsApp పంపుతోంది…',
-    submitJob: 'పని రికార్డ్ సేవ్ చేయి',
     errSelectVehicle: 'ముందు వాహనం ఎంచుకోండి.',
     errAddSession: 'కనీసం ఒక సెషన్ జోడించు.',
-    errStopFirst: 'ముందు సెషన్ ఆపండి.',
     errPickTimes: 'మొదలు మరియు ఆపు సమయాలు వేయండి.',
     errInvalidDate: 'తప్పు సమయం.',
     errStopAfterStart: 'ఆపు సమయం తర్వాత ఉండాలి.',
 
     // EarningsScreen
     todaySection: 'ఈరోజు',
-    seasonSection: 'ఈ సీజన్ (మొత్తం)',
-    earnedLabel: 'సంపాయించారు',
     collectedLabel: 'వసూలు అయింది',
-    pendingLabel: 'బాకీ',
-    pendingCollections: 'వసూలు బాకీ ({n})',
     allPaidMsg: 'అందరూ చెల్లించారు!',
 
     // Home
@@ -366,6 +322,20 @@ const translations = {
     gotCashNow: 'డబ్బు ఇప్పుడే వచ్చిందా? నమోదు చేయండి',
     paymentRecorded: 'డబ్బు నమోదైంది',
     done: 'అయిపోయింది',
+
+    // Login + Money + More
+    codeHint: 'ఈ నంబర్‌కి 6 అంకెల కోడ్ పంపుతాం.',
+    getCode: 'కోడ్ పొందండి',
+    dataPrivate: 'మీ వివరాలు మీకు మాత్రమే కనిపిస్తాయి.',
+    thisWeek: 'ఈ వారం',
+    seasonTab: 'సీజన్',
+    totalEarned: 'మొత్తం సంపాదన',
+    toCollect: 'వసూలు చేయాలి',
+    collectedPct: '{n}% వసూలైంది',
+    whoOwesMost: 'ఎక్కువ బాకీ ఉన్నవారు',
+    waitingDays: '{n} రోజులుగా బాకీ',
+    remindOnWhatsapp: '{name} కి వాట్సాప్‌లో గుర్తు చేయి',
+    yourVehicles: 'మీ వాహనాలు',
 
     // BottomNav
     homeTab: 'హోమ్',
