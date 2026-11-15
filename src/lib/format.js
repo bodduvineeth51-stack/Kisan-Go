@@ -10,3 +10,8 @@ export function formatHours(hours) {
   const m = totalMin % 60
   return `${h}h ${String(m).padStart(2, '0')}m`
 }
+
+// "Ramulu" → "RA" for avatars
+export function initials(name = '') {
+  return String(name ?? '').trim().slice(0, 2).toUpperCase()
+}

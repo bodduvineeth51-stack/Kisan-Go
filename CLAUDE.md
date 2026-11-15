@@ -236,6 +236,16 @@ Reuses the Android repo's Phase 2 database objects unchanged (`supabase/migratio
 - Added `npm test` (isolated PostgreSQL/PGlite migration and domain tests) and `npm run test:browser` (mobile Chrome, mocked Supabase/session data). Real Firebase SMS and Twilio delivery still need deployment checks.
 - November 15 DEV rollout: reauthenticated, restored paused `ctsohixfzmbzmbahvhda`, explicitly relinked CLI to dev, and applied all three missing migrations (roles, claim, profile validation). The hosted pgTAP suite passed 28 assertions with fixtures rolled back. `send-whatsapp` deployed to dev; existing `firebase-login` retained. Dev lacks Twilio secrets, so automatic WhatsApp delivery remains unverified/unconfigured. Real Firebase SMS still needs an end-to-end check. Production and Vercel were not deployed. Explicitly target dev on future commands; run database CLI commands sequentially to avoid temporary-login collisions.
 
+### Phase 12 — Whole UI on the kisan-design system (November 15)
+
+- Shared pieces live in `src/components/ui.jsx` (Logo, PageHeader, Chip, Sheet, Field, PhoneField, ChoiceButton, PrimaryButton, SecondaryButton, DateTile, Spinner/ErrorCard/EmptyCard, Bilingual). Build new screens from these, not one-off classes. Extra tokens from the reference HTML (LIVE/PAUSED badge colours, shadows) were added to `src/index.css`.
+- Owner navigation (`App.jsx`): tabs → **Customer page** (`pages/CustomerPage.jsx`, `openCustomerId`) → Timer → Bill sent → Done returns Home. Customers list (`Dashboard.jsx`) no longer has per-card Start/paid/delete; those live on the Customer page (paid toggle, Remind via owner's own WhatsApp, edit/delete in `components/CustomerForm.jsx`). `CustomerCard.jsx` was removed.
+- Timer starts the clock on open (Start work → running = 2 taps). First vehicle is preselected and can be changed while running. "Finish & send bill" stops a running session first. Every submit (owner and driver) now ends on the Bill-sent screen with a WhatsApp Retry; the preview text mirrors `buildMessage()` via `billMessage()` in `lib/money.js` — keep them in sync.
+- Money tab: Today / This week (from Monday, local time) / Season. Owed amounts and "waiting N days" come from `customerBalances()` (`lib/money.js`); payment is still the customer-level `is_paid` flag, so a customer owes all or nothing.
+- Customers search has a voice button (`lib/useVoiceSearch.js`, app language, web + Capacitor).
+- Driver screens (no reference design) reuse the same pieces: Home mirrors owner Home without money; driver customers list has a Start work button per row.
+- Browser tests: if a dev server is already running on 5173 Playwright reuses it, and the invite-link test fails because that server lacks `VITE_PUBLIC_APP_URL`. Stop the server first (or run on another port).
+
 ## Rules
 - All UI must follow `kisan-design/DESIGN.md` (colours, fonts, spacing,
   shapes, icons) and match the reference screens in `kisan-design/screens/`.

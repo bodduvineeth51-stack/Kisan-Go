@@ -12,9 +12,12 @@ import DriverApp from './pages/driver/DriverApp'
 import { loadMyRole } from './lib/roles'
 import { readInvitePhone, clearInviteParam } from './lib/invite'
 import { localDigits, formatPhone } from './lib/phone'
+import CustomerPage from './pages/CustomerPage'
+import { LogoMark, Wordmark } from './components/ui'
 import { useTrans } from './context/LangContext'
 
 function InstallBanner() {
+  const { t } = useTrans()
   const [prompt, setPrompt] = useState(null)
   const [dismissed, setDismissed] = useState(false)
 
@@ -39,45 +42,45 @@ function InstallBanner() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-3 bg-green-700 px-4 py-3 shadow-lg">
-      <p className="text-sm font-medium text-white">Install Kisan Go on your phone</p>
-      <div className="flex shrink-0 gap-2">
-        <button
-          onClick={() => setDismissed(true)}
-          className="rounded-lg px-3 py-1.5 text-xs font-medium text-green-200 hover:text-white"
-        >
-          Not now
-        </button>
-        <button
-          onClick={install}
-          className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-green-700 hover:bg-green-50"
-        >
-          Install
-        </button>
-      </div>
+    <div className="fixed inset-x-3 top-[calc(12px+env(safe-area-inset-top))] z-50 mx-auto flex max-w-lg items-center gap-3 rounded-3xl bg-surface p-3 shadow-nav">
+      <LogoMark size={40} />
+      <p className="min-w-0 flex-1 text-sm font-bold text-ink">{t('installTitle')}</p>
+      <button onClick={() => setDismissed(true)} className="min-h-11 shrink-0 px-2 text-sm font-bold text-muted">
+        {t('notNow')}
+      </button>
+      <button onClick={install} className="min-h-11 shrink-0 rounded-2xl bg-primary px-4 text-sm font-extrabold text-white shadow-green">
+        {t('install')}
+      </button>
     </div>
   )
 }
 
 function Loading() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-5 bg-green-600">
-      <div className="text-center">
-        <h1 className="text-4xl font-black tracking-tight text-white">Kisan Go</h1>
-        <p className="mt-1 text-sm text-green-200">కిసాన్ గో</p>
+    <div className="relative flex min-h-svh flex-col items-center justify-center gap-6 overflow-hidden bg-mint-100">
+      <div className="absolute -right-[60px] -top-[60px] h-[220px] w-[220px] rounded-full bg-mint-200" />
+      <div className="absolute -left-[30px] bottom-[20%] h-[90px] w-[90px] rounded-full bg-lime opacity-50" />
+      <div className="relative flex flex-col items-center gap-4 text-center">
+        <LogoMark size={72} />
+        <Wordmark className="text-[44px] leading-none tracking-[-1.5px]" />
+        <p className="text-base font-semibold text-mint-ink">మీ వాహనం లెక్కలు, మీ ఫోన్‌లో.</p>
       </div>
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-400 border-t-white" />
+      <div role="status" aria-label="Loading" className="relative h-8 w-8 animate-spin rounded-full border-4 border-mint-200 border-t-primary" />
     </div>
   )
 }
 
+const PRIMARY = 'min-h-[58px] rounded-[18px] bg-primary px-4 text-lg font-extrabold text-white shadow-green active:scale-[0.98]'
+const SECONDARY = 'min-h-[52px] rounded-[18px] bg-mint-50 px-4 text-base font-bold text-primary'
+
 function CenteredMessage({ title, body, actions }) {
   return (
     <div className="flex min-h-svh items-center justify-center px-5">
-      <div className="w-full max-w-sm rounded-[26px] bg-surface p-7 text-center shadow-card">
+      <div className="flex w-full max-w-sm flex-col items-center rounded-[26px] bg-surface p-7 text-center shadow-raised">
+        <LogoMark size={52} className="mb-4" />
         <h1 className="text-[22px] font-extrabold leading-tight tracking-[-0.4px] text-ink">{title}</h1>
         {body && <p className="mt-2 text-base font-medium text-muted">{body}</p>}
-        <div className="mt-6 flex flex-col gap-2.5">{actions}</div>
+        <div className="mt-6 flex w-full flex-col gap-2.5">{actions}</div>
       </div>
     </div>
   )
@@ -91,9 +94,7 @@ function AccessRemoved({ onSignOut }) {
       title={t('accessRemovedTitle')}
       body={t('accessRemovedBody')}
       actions={
-        <button onClick={onSignOut} className="min-h-14 rounded-2xl bg-primary text-lg font-extrabold text-white shadow-green">
-          {t('signOut')}
-        </button>
+        <button onClick={onSignOut} className={PRIMARY}>{t('signOut')}</button>
       }
     />
   )
@@ -106,8 +107,8 @@ function AccessRemoved({ onSignOut }) {
 function InviteNotFound({ phone, invitedPhone, onRetry, onSignOut, onOwnerSignup }) {
   const { t } = useTrans()
   const mismatch = Boolean(phone) && phone !== invitedPhone
-  const primary = 'min-h-14 rounded-2xl bg-primary text-lg font-extrabold text-white shadow-green'
-  const secondary = 'min-h-12 rounded-2xl border border-border text-base font-bold text-ink'
+  const primary = PRIMARY
+  const secondary = SECONDARY
   const retryBtn = (cls) => <button onClick={onRetry} className={cls}>{t('checkAgain')}</button>
   const signOutBtn = (cls) => <button onClick={onSignOut} className={cls}>{t('signOut')}</button>
   return (
@@ -137,9 +138,7 @@ function RoleError({ onRetry, onSignOut }) {
       title={t('roleLoadFailed')}
       actions={
         <>
-          <button onClick={onRetry} className="min-h-14 rounded-2xl bg-primary text-lg font-extrabold text-white shadow-green">
-            {t('retry')}
-          </button>
+          <button onClick={onRetry} className={PRIMARY}>{t('retry')}</button>
           <button onClick={onSignOut} className="min-h-12 text-base font-bold text-muted">
             {t('signOut')}
           </button>
@@ -185,7 +184,9 @@ function AccountApp({ session }) {
   const [accessRemoved, setAccessRemoved] = useState(false)
   const [ownerSignup, setOwnerSignup] = useState(false) // came by driver link, chose owner sign-up
   const [activeJob, setActiveJob] = useState(null)  // { customer } | null
-  const [activeTab, setActiveTab] = useState('home') // 'home' | 'customers' | 'earnings' | 'drivers'
+  const [activeTab, setActiveTab] = useState('home') // 'home' | 'customers' | 'earnings' | 'drivers' | 'profile'
+  const [tabOptions, setTabOptions] = useState({})   // e.g. { filter: 'due' } for Customers
+  const [openCustomerId, setOpenCustomerId] = useState(null) // owner's Customer page
 
   const mismatch = Boolean(invitedPhone && localDigits(session.user.phone) !== invitedPhone)
 
@@ -265,13 +266,30 @@ function AccountApp({ session }) {
   }
 
   const owner = me.owner
+  function goTab(tab, options = {}) {
+    setOpenCustomerId(null)
+    setTabOptions(options)
+    setActiveTab(tab)
+  }
+
   if (activeJob) {
     return (
       <TimerScreen
         customer={activeJob.customer}
         vehicleRates={owner.vehicle_rates}
-        onComplete={() => setActiveJob(null)}
+        onComplete={() => { setActiveJob(null); goTab('home') }}
         onBack={() => setActiveJob(null)}
+      />
+    )
+  }
+  if (openCustomerId) {
+    return (
+      <CustomerPage
+        owner={owner}
+        customerId={openCustomerId}
+        onBack={() => setOpenCustomerId(null)}
+        onStartJob={(customer) => setActiveJob({ customer })}
+        onDeleted={() => setOpenCustomerId(null)}
       />
     )
   }
@@ -279,15 +297,14 @@ function AccountApp({ session }) {
     owner,
     onSignOut: signOut,
     activeTab,
-    onTabChange: setActiveTab,
+    onTabChange: goTab,
+    onOpenCustomer: (customer) => setOpenCustomerId(customer.id),
   }
   return (
     <>
       {activeTab === 'home' && <Home {...sharedProps} />}
       {activeTab === 'earnings' && <EarningsScreen {...sharedProps} />}
-      {activeTab === 'customers' && (
-        <Dashboard {...sharedProps} onStartJob={(customer) => setActiveJob({ customer })} />
-      )}
+      {activeTab === 'customers' && <Dashboard key={tabOptions.filter ?? 'all'} {...sharedProps} initialFilter={tabOptions.filter} />}
       {activeTab === 'drivers' && <ManageDrivers {...sharedProps} />}
       {activeTab === 'profile' && <OwnerProfile {...sharedProps} onSaved={owner => setMe({ role: 'owner', owner })} />}
       <InstallBanner />
@@ -300,7 +317,7 @@ function InviteAccountMismatch({ phone, invitedPhone, onSignOut, onContinue }) {
   return <CenteredMessage title={t('inviteWrongAccount')}
     body={t('inviteNotFoundMismatch', { invited: formatPhone(invitedPhone), phone: formatPhone(phone) })}
     actions={<>
-      <button onClick={onSignOut} className="min-h-14 rounded-2xl bg-primary font-extrabold text-white">{t('switchAccount')}</button>
-      <button onClick={onContinue} className="min-h-12 rounded-2xl border border-border font-bold text-ink">{t('continueMyAccount')}</button>
+      <button onClick={onSignOut} className={PRIMARY}>{t('switchAccount')}</button>
+      <button onClick={onContinue} className={SECONDARY}>{t('continueMyAccount')}</button>
     </>} />
 }

@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, ClipboardList, Clock, Play } from 'lucide-react'
+import { Play } from 'lucide-react'
 import { driverRpc, AccessRemovedError } from '../../lib/roles'
 import { formatHours } from '../../lib/format'
-import { useTrans } from '../../context/LangContext'
+import { useTrans, LangToggle } from '../../context/LangContext'
 import BottomNav from '../../components/BottomNav'
-import Avatar from '../../components/Avatar'
-import DriverHeader from './DriverHeader'
+import { Bilingual, DateTile, EmptyCard, ErrorCard, Logo, Spinner } from '../../components/ui'
 import { DRIVER_TABS } from './tabs'
 
-export default function DriverDashboard({ me, onSignOut, onAccessRemoved, activeTab, onTabChange }) {
+// Driver Home, laid out like the owner Home (2-home.html) but with only the
+// driver's own work: hours and jobs today, no money.
+export default function DriverDashboard({ me, onAccessRemoved, activeTab, onTabChange }) {
   const { t, lang } = useTrans()
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -27,36 +28,73 @@ export default function DriverDashboard({ me, onSignOut, onAccessRemoved, active
     }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [attempt, onAccessRemoved])
+
   const today = new Date().toDateString()
   const todayJobs = jobs.filter(j => new Date(j.created_at).toDateString() === today)
   const hours = todayJobs.reduce((sum, j) => sum + Number(j.total_hours), 0)
+  const dateLabel = new Date().toLocaleDateString(lang === 'te' ? 'te-IN' : 'en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
+  const blank = loading || error
 
   return (
     <div className="min-h-svh">
-      <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-5 pb-32 pt-4">
-        <DriverHeader me={me} title={t('homeTab')} onSignOut={onSignOut} />
-        <section className="relative overflow-hidden rounded-[26px] bg-primary p-5 text-white shadow-green">
-          <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-circle-1 opacity-40" />
-          <p className="relative text-sm font-semibold text-mint-100">{t('driverDashboard')}</p>
-          <h1 className="relative mt-2 break-words text-[28px] font-extrabold leading-tight">{t('namaste', { name: me.name })}</h1>
-          <p className="relative mt-2 text-sm text-mint-100">{t('driverDashboardHelp')}</p>
-          <div className="relative mt-5 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-white/15 p-3"><ClipboardList size={20} /><p className="mt-2 text-2xl font-extrabold">{loading || error ? '—' : todayJobs.length}</p><p className="text-sm text-mint-100">{t('todaysJobs')}</p></div>
-            <div className="rounded-2xl bg-white/15 p-3"><Clock size={20} /><p className="mt-2 text-2xl font-extrabold">{loading || error ? '—' : formatHours(hours)}</p><p className="text-sm text-mint-100">{t('hoursToday')}</p></div>
+      <div className="mx-auto flex w-full max-w-lg flex-col gap-3.5 px-5 pb-32 pt-4">
+        <div className="flex h-11 items-center justify-between">
+          <Logo />
+          <LangToggle />
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-muted">{dateLabel}</p>
+          <h1 className="mt-0.5 break-words text-[28px] font-extrabold leading-[1.15] tracking-[-0.8px]">{t('namaste', { name: me.name })}</h1>
+          <p className="mt-0.5 text-sm font-semibold text-muted">{t('driverForBusiness', { business: me.business_name ?? '' })}</p>
+        </div>
+
+        {/* Today's work */}
+        <div className="relative flex flex-col gap-2.5 overflow-hidden rounded-[26px] bg-primary p-5 text-white shadow-hero">
+          <div className="absolute -right-10 -top-[50px] h-[170px] w-[170px] rounded-full bg-circle-1 opacity-45" />
+          <div className="absolute right-10 top-[60px] h-20 w-20 rounded-full bg-circle-2 opacity-30" />
+          <div className="relative flex items-center gap-2">
+            <span className="text-sm font-semibold text-mint-100">{t('hoursToday')}</span>
+            <span className="ml-auto rounded-xl bg-white/[0.18] px-2.5 py-1 text-[13px] font-bold">
+              {blank ? '—' : t(todayJobs.length === 1 ? 'jobCount' : 'jobsCount', { n: todayJobs.length })}
+            </span>
           </div>
-        </section>
-        <button onClick={() => onTabChange('customers')} className="flex min-h-16 items-center justify-center gap-3 rounded-[20px] bg-primary-bright text-lg font-extrabold text-white shadow-green">
-          <Play size={22} />{t('chooseCustomerStart')}
+          <div className="relative text-[44px] font-extrabold leading-none tracking-[-1.5px]">{blank ? '—' : formatHours(hours)}</div>
+          <p className="relative text-sm font-medium text-mint-100">{t('driverDashboardHelp')}</p>
+        </div>
+
+        {/* Start work */}
+        <button
+          onClick={() => onTabChange('customers')}
+          aria-label={t('chooseCustomerStart')}
+          className="flex h-20 shrink-0 items-center gap-4 rounded-3xl bg-primary-bright px-[18px] text-left text-white shadow-start active:scale-[0.98]"
+        >
+          <span className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-full bg-surface shadow-[0_0_0_6px_rgba(255,255,255,0.25)]">
+            <Play size={24} fill="#15803D" strokeWidth={0} aria-hidden="true" />
+          </span>
+          <span className="flex-1 text-[22px] font-extrabold tracking-[-0.5px]">
+            <Bilingual k="startWork" subClass="text-sm font-medium tracking-normal text-mint-100" />
+          </span>
         </button>
-        <div className="flex items-center justify-between"><h2 className="text-lg font-extrabold">{t('recentJobs')}</h2><button onClick={() => onTabChange('myjobs')} className="min-h-11 px-2 text-sm font-bold text-primary">{t('seeAll')}</button></div>
-        {error && <div role="alert" className="rounded-2xl bg-surface p-4 text-center shadow-card"><p className="text-danger">{t('somethingWrong')}</p><button onClick={() => setAttempt(n => n + 1)} className="min-h-11 font-bold text-primary">{t('retry')}</button></div>}
-        {loading && <p role="status" className="py-5 text-center text-muted">{t('loading')}</p>}
-        {!loading && !error && jobs.length === 0 && <p className="rounded-[18px] bg-surface p-5 text-center text-sm font-semibold text-muted shadow-card">{t('noMyJobs')}</p>}
-        {!loading && !error && jobs.slice(0, 5).map(job => <div key={job.id} className="flex items-center gap-3 rounded-[18px] bg-surface p-4 shadow-card">
-          <Avatar id={job.customer_id} name={job.customer_name} />
-          <div className="min-w-0 flex-1"><p className="truncate font-bold">{job.customer_name}</p><p className="text-sm text-muted">{job.vehicle_type} · {formatHours(job.total_hours)}</p><p className="mt-1 text-xs text-muted">{new Date(job.created_at).toLocaleDateString(lang === 'te' ? 'te-IN' : 'en-IN')}</p></div>
-        </div>)}
-        <button onClick={() => onTabChange('profile')} className="flex min-h-14 items-center justify-between rounded-2xl bg-mint-100 px-4 font-bold text-primary">{t('profileVehicles')}<ArrowRight size={20} /></button>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-lg font-extrabold tracking-[-0.3px]">{t('recentJobs')}</h2>
+            <button onClick={() => onTabChange('myjobs')} className="min-h-11 px-1 text-sm font-bold text-primary">{t('seeAll')}</button>
+          </div>
+          {error && <ErrorCard onRetry={() => setAttempt(n => n + 1)} />}
+          {loading && <Spinner />}
+          {!blank && jobs.length === 0 && <EmptyCard title={t('noMyJobs')} />}
+          {!blank && jobs.slice(0, 5).map(job => (
+            <div key={job.id} className="flex items-center gap-3 rounded-[18px] bg-surface px-3.5 py-2.5 shadow-card">
+              <DateTile iso={job.created_at} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-base font-bold">{job.customer_name}</span>
+                <span className="block text-[13px] font-medium text-muted">{job.vehicle_type} · {formatHours(job.total_hours)}</span>
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
       <BottomNav active={activeTab} onChange={onTabChange} tabs={DRIVER_TABS} />
     </div>

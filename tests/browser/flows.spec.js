@@ -105,7 +105,9 @@ test('switching accounts preserves the invite and pre-fills the driver login', a
 test('a revoked driver is blocked on their next dashboard request', async ({ page }) => {
   const state = await setup(page, { role: 'driver' })
   await page.goto('/')
-  await expect(page.getByText('Driver dashboard', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Namaste, Ravi' })).toBeVisible()
+  // Let the dashboard's own access check finish before revoking.
+  await expect(page.getByText(/^No jobs yet/)).toBeVisible()
   state.status = 'revoked'
   await page.getByRole('button', { name: 'My jobs', exact: true }).click()
   await expect(page.getByText('Your access has been removed.', { exact: true })).toBeVisible()
@@ -121,7 +123,7 @@ test('driver invite pre-fills the login phone', async ({ page }) => {
 test('verified invited driver gets a personal dashboard and can submit a job', async ({ page }) => {
   const state = await setup(page, { role: 'driver', invited: true })
   await page.goto('/?invite=9848000002')
-  await expect(page.getByText('Driver dashboard', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Namaste, Ravi' })).toBeVisible()
   await expect(page).not.toHaveURL(/invite=/)
   await expect(page.getByRole('button', { name: 'Money', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Drivers', exact: true })).toHaveCount(0)
@@ -129,15 +131,23 @@ test('verified invited driver gets a personal dashboard and can submit a job', a
   // The owner changed a rate while this driver was already logged in.
   state.owner.vehicle_rates[0].hourly_rate = 1500
   await page.getByRole('button', { name: 'Choose customer & start work' }).click()
-  await page.getByRole('button', { name: /Start job/ }).click()
-  await expect(page.getByText('₹1500/hr', { exact: false })).toBeVisible()
-  await page.getByRole('button', { name: '+ Add manually' }).click()
+  await page.getByRole('button', { name: 'Start work', exact: true }).click()
+  // Start work starts the clock straight away.
+  await expect(page.getByText('LIVE', { exact: true })).toBeVisible()
+  await expect(page.getByText('₹1,500 / hour', { exact: true })).toBeVisible()
+  // Drop the running session and enter the time by hand instead.
+  await page.getByRole('button', { name: 'Remove session 1' }).click()
+  await expect(page.getByText('LIVE', { exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Add time' }).click()
   await page.locator('input[type="datetime-local"]').nth(0).fill('2026-11-15T10:00')
   await page.locator('input[type="datetime-local"]').nth(1).fill('2026-11-15T11:30')
   await page.getByRole('button', { name: 'Save', exact: true }).click()
-  await page.getByRole('button', { name: 'Submit job record' }).click()
-  await expect(page.getByText('Job submitted', { exact: true })).toBeVisible()
+  await expect(page.getByText('Bill so far')).toBeVisible()
+  await page.getByRole('button', { name: 'Finish & send bill' }).click()
+  await expect(page.getByRole('heading', { name: 'Bill sent on WhatsApp' })).toBeVisible()
   await expect(page.getByText('₹2,250', { exact: true })).toBeVisible()
+  // Drivers cannot mark a customer as paid.
+  await expect(page.getByRole('button', { name: /Mark as paid/ })).toHaveCount(0)
   await page.getByRole('button', { name: 'Done', exact: true }).click()
   await expect(page.getByText('Ramulu', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Home', exact: true }).click()
@@ -172,5 +182,29 @@ test('failed invite claim offers retry, then resolves to driver dashboard', asyn
   await expect(page.getByText('Could not load your account. Check your connection.')).toBeVisible()
   state.claimFails = false
   await page.getByRole('button', { name: 'Tap to retry' }).click()
-  await expect(page.getByText('Driver dashboard', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Namaste, Ravi' })).toBeVisible()
+})
+
+test('owner opens a customer, works a job and sends the bill', async ({ page }) => {
+  const state = await setup(page)
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Namaste, Srinivas' })).toBeVisible()
+  await page.getByRole('button', { name: 'Customers', exact: true }).click()
+  await expect(page.getByText('1 farmers')).toBeVisible()
+  await page.getByRole('button', { name: /Ramulu/ }).click()
+  await expect(page.getByRole('heading', { name: 'Ramulu' })).toBeVisible()
+  await page.getByRole('button', { name: /Start work/ }).click()
+  await expect(page.getByText('LIVE', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: /^Stop/ }).click()
+  await expect(page.getByText('PAUSED', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start again' })).toBeVisible()
+  await page.getByRole('button', { name: 'Finish & send bill' }).click()
+  await expect(page.getByRole('heading', { name: 'Bill sent on WhatsApp' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Mark as paid/ })).toBeVisible()
+  expect(state.jobs).toHaveLength(1)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.getByRole('button', { name: 'Done', exact: true }).click()
+  await page.getByRole('button', { name: 'Money', exact: true }).click()
+  await expect(page.getByText('Who owes the most')).toBeVisible()
+  await expect(page.getByText('Waiting 0 days')).toBeVisible()
 })

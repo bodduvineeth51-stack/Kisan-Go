@@ -5,6 +5,8 @@ import { formatPhone } from '../../lib/phone'
 import BottomNav from '../../components/BottomNav'
 import { useTrans, LangToggle } from '../../context/LangContext'
 import { DRIVER_TABS } from './tabs'
+import { initials as toInitials } from '../../lib/format'
+import { PageHeader } from '../../components/ui'
 
 function Row({ label, value }) {
   return (
@@ -17,8 +19,8 @@ function Row({ label, value }) {
 
 function Card({ title, children }) {
   return (
-    <div className="rounded-[18px] bg-surface px-4 pb-1 pt-3.5 shadow-card">
-      <h2 className="text-sm font-extrabold uppercase tracking-wide text-muted">{title}</h2>
+    <div className="rounded-[22px] bg-surface px-5 pb-1 pt-4 shadow-card">
+      <h2 className="text-lg font-extrabold text-ink">{title}</h2>
       {children}
     </div>
   )
@@ -46,7 +48,7 @@ export default function DriverProfile({ me, phone, onSignOut, onAccessRemoved, a
   useEffect(() => { fetchJobs() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const vehicles = me.vehicle_rates ?? []
-  const initials = (me.name ?? '').trim().slice(0, 2).toUpperCase()
+  const initials = toInitials(me.name)
   const lastJob = jobs?.[0]?.created_at // my_work_records is newest first
   const fmtDate = (iso) =>
     new Date(iso).toLocaleDateString(lang === 'te' ? 'te-IN' : 'en-IN', {
@@ -57,13 +59,10 @@ export default function DriverProfile({ me, phone, onSignOut, onAccessRemoved, a
   return (
     <div className="min-h-svh">
       <div className="mx-auto flex w-full max-w-lg flex-col gap-3.5 px-5 pb-32 pt-4">
-        <div className="flex h-11 items-center justify-between">
-          <h1 className="text-[26px] font-extrabold tracking-[-0.8px] text-ink">{t('profileTab')}</h1>
-          <LangToggle variant="light" />
-        </div>
+        <PageHeader title={t('profileTab')} right={<LangToggle />} />
 
         {/* Who you are */}
-        <div className="relative flex items-center gap-4 overflow-hidden rounded-[26px] bg-primary p-5 text-white shadow-[0_10px_24px_rgba(21,128,61,0.28)]">
+        <div className="relative flex items-center gap-4 overflow-hidden rounded-[26px] bg-primary p-5 text-white shadow-hero">
           <div className="absolute -right-10 -top-[50px] h-[170px] w-[170px] rounded-full bg-circle-1 opacity-45" />
           <div className="absolute right-10 top-[60px] h-20 w-20 rounded-full bg-circle-2 opacity-30" />
           <span className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] bg-mint-100 text-2xl font-extrabold text-primary">
@@ -101,7 +100,7 @@ export default function DriverProfile({ me, phone, onSignOut, onAccessRemoved, a
 
         <button
           onClick={onSignOut}
-          className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-border bg-surface text-base font-extrabold text-danger active:scale-[0.98]"
+          className="flex min-h-14 items-center justify-center gap-2 rounded-[18px] bg-surface text-base font-extrabold text-danger shadow-card active:scale-[0.98]"
         >
           <LogOut size={20} strokeWidth={2.4} aria-hidden="true" />
           {t('signOut')}

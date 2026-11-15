@@ -7,6 +7,7 @@ import BottomNav from '../components/BottomNav'
 import AddButton from '../components/AddButton'
 import Avatar from '../components/Avatar'
 import { useTrans, LangToggle } from '../context/LangContext'
+import { Sheet, Field, PhoneField, PrimaryButton, PageHeader, Spinner, ErrorCard, EmptyCard, Chip } from '../components/ui'
 
 // Owner only. Uses the Phase 2 objects as they are:
 //   read:   memberships (policy memberships_owner_read: business_id = auth.uid())
@@ -27,30 +28,7 @@ function errorText(err, t) {
   return key ? t(ADD_ERRORS[key]) : (err?.message || t('somethingWrong'))
 }
 
-const STATUS_STYLE = {
-  invited: 'bg-amber-bg text-amber',
-  active: 'bg-mint-100 text-primary',
-  revoked: 'bg-due-bg text-due',
-}
-
-function Sheet({ title, onClose, children }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
-      <div
-        className="mx-auto w-full max-w-lg rounded-t-[26px] bg-surface px-5 pb-[calc(28px+env(safe-area-inset-bottom))] pt-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-extrabold tracking-[-0.3px] text-ink">{title}</h2>
-          <button onClick={onClose} aria-label="Close" className="flex h-11 w-11 items-center justify-center text-xl text-muted">
-            ✕
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  )
-}
+const STATUS_TONE = { invited: 'amber', active: 'mint', revoked: 'due' }
 
 function AddDriverSheet({ onClose, onSaved }) {
   const { t } = useTrans()
@@ -72,40 +50,23 @@ function AddDriverSheet({ onClose, onSaved }) {
     onSaved(data?.[0] ?? { name: name.trim(), phone: digits })
   }
 
-  const input = 'w-full rounded-2xl border border-border bg-surface px-4 py-3.5 text-base font-semibold text-ink outline-none focus:border-primary'
   return (
     <Sheet title={t('addDriver')} onClose={onClose}>
-      <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-        <input
-          type="text"
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+        <Field
+          id="driver-name"
+          label={t('driverNameLabel')}
           placeholder={t('driverNameLabel')}
           value={name}
           maxLength={30}
           onChange={(e) => setName(e.target.value)}
           autoFocus
-          className={input}
         />
-        <div className="flex items-center rounded-2xl border border-border bg-surface focus-within:border-primary">
-          <span className="pl-4 text-base font-semibold text-muted">+91</span>
-          <input
-            type="tel"
-            inputMode="numeric"
-            maxLength={13}
-            placeholder="9876543210"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-            className="w-full rounded-2xl px-2 py-3.5 text-base font-semibold text-ink outline-none"
-          />
-        </div>
-        <p className="text-sm font-medium text-muted">{t('addDriverHint')}</p>
-        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
-        <button
-          type="submit"
-          disabled={saving}
-          className="mt-1 min-h-14 rounded-2xl bg-primary text-lg font-extrabold text-white shadow-green disabled:opacity-60"
-        >
+        <PhoneField id="driver-phone" label={t('driverPhoneLabel')} hint={t('addDriverHint')} value={phone} onChange={setPhone} />
+        {error && <p role="alert" className="rounded-2xl bg-due-bg px-4 py-3 text-sm font-semibold text-danger">{error}</p>}
+        <PrimaryButton type="submit" disabled={saving}>
           {saving ? t('savingProfile') : t('addDriver')}
-        </button>
+        </PrimaryButton>
       </form>
     </Sheet>
   )
@@ -120,7 +81,7 @@ function ShareLinkSheet({ driver, ownerName, onClose }) {
 
   if (!link) return (
     <Sheet title={t('sendAccessLinkTitle', { name: driver.name })} onClose={onClose}>
-      <p role="alert" className="rounded-2xl bg-due-bg p-4 text-sm font-semibold text-due">{t('inviteUrlUnavailable')}</p>
+      <p role="alert" className="rounded-2xl bg-due-bg px-4 py-3 text-sm font-semibold text-due">{t('inviteUrlUnavailable')}</p>
     </Sheet>
   )
 
@@ -142,12 +103,12 @@ function ShareLinkSheet({ driver, ownerName, onClose }) {
         href={whatsappUrl(driver.phone, message)}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-4 flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-primary text-lg font-extrabold text-white shadow-green active:scale-[0.98]"
+        className="mt-4 flex min-h-16 items-center justify-center gap-2.5 rounded-[20px] bg-primary text-xl font-extrabold text-white shadow-green active:scale-[0.98]"
       >
         <MessageCircle size={22} strokeWidth={2.4} aria-hidden="true" />
         {t('sendLinkWhatsApp')}
       </a>
-      <button onClick={copy} className="mt-2.5 min-h-12 w-full rounded-2xl border border-border text-base font-bold text-ink">
+      <button onClick={copy} className="mt-2.5 min-h-[52px] w-full rounded-[18px] bg-mint-50 text-base font-bold text-primary">
         {copied ? t('linkCopied') : t('copyLink')}
       </button>
     </Sheet>
@@ -171,15 +132,15 @@ function RevokeSheet({ driver, onClose, onRevoked }) {
   return (
     <Sheet title={t('revokeTitle', { name: driver.name })} onClose={onClose}>
       <p className="text-base font-medium text-muted">{t('revokeBody')}</p>
-      {error && <p className="mt-3 text-sm font-semibold text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-3 rounded-2xl bg-due-bg px-4 py-3 text-sm font-semibold text-danger">{error}</p>}
       <div className="mt-5 flex gap-3">
-        <button onClick={onClose} className="min-h-14 flex-1 rounded-2xl border border-border text-base font-bold text-ink">
+        <button onClick={onClose} className="min-h-[58px] flex-1 rounded-[18px] bg-mint-50 text-base font-bold text-ink">
           {t('cancel')}
         </button>
         <button
           onClick={revoke}
           disabled={busy}
-          className="min-h-14 flex-1 rounded-2xl bg-danger text-base font-extrabold text-white disabled:opacity-60"
+          className="min-h-[58px] flex-1 rounded-[18px] bg-danger text-base font-extrabold text-white shadow-danger disabled:opacity-60"
         >
           {busy ? t('savingProfile') : t('revokeConfirm')}
         </button>
@@ -188,7 +149,7 @@ function RevokeSheet({ driver, onClose, onRevoked }) {
   )
 }
 
-export default function ManageDrivers({ owner, onSignOut, activeTab, onTabChange }) {
+export default function ManageDrivers({ owner, activeTab, onTabChange }) {
   const { t } = useTrans()
   const [drivers, setDrivers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -237,62 +198,38 @@ export default function ManageDrivers({ owner, onSignOut, activeTab, onTabChange
   return (
     <div className="min-h-svh">
       <div className="mx-auto flex w-full max-w-lg flex-col gap-3.5 px-5 pb-44 pt-4">
-        <div className="flex h-11 items-center justify-between gap-3">
-          <h1 className="min-w-0 truncate text-[22px] font-extrabold tracking-[-0.6px] text-ink">{t('driversTitle')}</h1>
-          <div className="flex items-center gap-2">
-            <LangToggle variant="light" />
-            <button onClick={onSignOut} className="min-h-11 px-2 text-sm font-bold text-muted">
-              {t('signOut')}
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title={t('driversTab')}
+          chip={loading ? null : t('driversCount', { n: drivers.filter((d) => d.status !== 'revoked').length })}
+          right={<LangToggle />}
+        />
         <p className="text-sm font-medium text-muted">{t('driversSub')}</p>
 
-        {error && (
-          <div className="rounded-[18px] bg-surface px-4 py-3 text-center shadow-card">
-            <p className="text-sm font-semibold text-danger">{error}</p>
-            <button onClick={fetchDrivers} className="mt-2 min-h-11 text-sm font-bold text-primary underline">
-              {t('retry')}
-            </button>
-          </div>
-        )}
-
-        {loading && (
-          <div className="flex justify-center py-10">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-mint-200 border-t-primary" />
-          </div>
-        )}
-
-        {!loading && !error && drivers.length === 0 && (
-          <div className="rounded-[18px] bg-surface px-4 py-8 text-center shadow-card">
-            <p className="text-base font-bold text-ink">{t('noDrivers')}</p>
-            <p className="mt-1 text-sm font-medium text-muted">{t('noDriversSub')}</p>
-          </div>
-        )}
+        {error && <ErrorCard message={error} onRetry={() => fetchDrivers()} />}
+        {loading && <Spinner />}
+        {!loading && !error && drivers.length === 0 && <EmptyCard title={t('noDrivers')} sub={t('noDriversSub')} />}
 
         {!loading && drivers.map((d) => (
-          <div key={d.id} className="rounded-[18px] bg-surface px-3.5 py-3 shadow-card">
+          <div key={d.id} className="rounded-[18px] bg-surface px-3.5 py-2.5 shadow-card">
             <div className="flex items-center gap-3">
               <Avatar id={d.id} name={d.name} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-base font-bold text-ink">{d.name}</p>
                 <p className="text-[13px] font-medium text-muted">{formatPhone(d.phone)}</p>
-                <span className={`mt-1 inline-block rounded-lg px-2 py-px text-xs font-bold ${STATUS_STYLE[d.status]}`}>
-                  {t(`status_${d.status}`)}
-                </span>
+                <Chip small tone={STATUS_TONE[d.status]} className="mt-1">{t(`status_${d.status}`)}</Chip>
               </div>
               {d.status === 'revoked' ? (
                 <button
                   onClick={() => restore(d)}
                   disabled={restoringId === d.id}
-                  className="min-h-11 rounded-2xl bg-mint-100 px-3.5 text-sm font-bold text-primary disabled:opacity-60"
+                  className="min-h-11 rounded-[14px] bg-mint-100 px-3.5 text-sm font-extrabold text-primary disabled:opacity-60"
                 >
                   {t('restoreDriver')}
                 </button>
               ) : (
                 <button
                   onClick={() => setRevoking(d)}
-                  className="min-h-11 rounded-2xl border border-border px-3.5 text-sm font-bold text-danger"
+                  className="min-h-11 rounded-[14px] bg-due-bg px-3.5 text-sm font-extrabold text-due"
                 >
                   {t('revokeDriver')}
                 </button>
@@ -301,7 +238,7 @@ export default function ManageDrivers({ owner, onSignOut, activeTab, onTabChange
             {d.status !== 'revoked' && (
               <button
                 onClick={() => setSharing(d)}
-                className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-mint-100 text-sm font-extrabold text-primary active:scale-[0.98]"
+                className="mt-2.5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-mint-50 text-sm font-extrabold text-primary active:scale-[0.98]"
               >
                 <MessageCircle size={18} strokeWidth={2.4} aria-hidden="true" />
                 {t('sendLinkWhatsApp')}

@@ -29,26 +29,21 @@ export function useTrans() {
   return { t, lang, setLang }
 }
 
-export function LangToggle({ variant = 'dark' }) {
+// "తె | EN" pill from the design's top bar. One tap switches language; the
+// current one is shown in bold green.
+export function LangToggle() {
   const { lang, setLang } = useLang()
-  const isDark = variant === 'dark'
+  const label = translations[lang]?.changeLanguage ?? translations.en.changeLanguage
+  const part = (code) => (lang === code ? 'font-extrabold text-primary' : 'font-semibold text-muted')
   return (
-    <div className={`flex overflow-hidden rounded-xl text-sm ${
-      isDark ? 'border border-green-500' : 'border border-gray-200'
-    }`}>
-      {[['en', 'EN'], ['te', 'తె']].map(([code, label]) => (
-        <button
-          key={code}
-          onClick={() => setLang(code)}
-          className={`px-3 py-1.5 font-semibold transition-colors ${
-            isDark
-              ? lang === code ? 'bg-white text-green-700' : 'text-green-100 hover:bg-green-700'
-              : lang === code ? 'bg-green-600 text-white' : 'text-gray-500 hover:bg-gray-50'
-          }`}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
+    <button
+      onClick={() => setLang(lang === 'en' ? 'te' : 'en')}
+      aria-label={label}
+      className="flex h-11 shrink-0 items-center gap-1.5 rounded-[22px] bg-surface px-4 text-sm shadow-soft"
+    >
+      <span className={part('te')}>తె</span>
+      <span className="text-border">|</span>
+      <span className={part('en')}>EN</span>
+    </button>
   )
 }

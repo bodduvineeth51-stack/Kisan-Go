@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { SpeechRecognition } from '@capacitor-community/speech-recognition'
 import { parseTranscript } from '../lib/voiceParser'
+import { Check, Globe, Mic, Square, X } from 'lucide-react'
 import { useTrans } from '../context/LangContext'
 
 const isNative = Capacitor.isNativePlatform()
@@ -137,27 +138,42 @@ export default function VoiceEntry({ customer, vehicleTypes, onConfirm, onClose 
     onConfirm({ vehicle: confirmVehicle, session: { start: start.toISOString(), stop: stop.toISOString() } })
   }
 
+  const timeInput = (value, set, label) => (
+    <input
+      type="time"
+      aria-label={label}
+      value={value}
+      onChange={e => set(e.target.value)}
+      className={`h-11 rounded-xl border-2 px-2 text-base font-bold text-ink outline-none focus:border-primary-bright ${
+        value ? 'border-border bg-surface' : 'border-due-bar bg-due-bg'
+      }`}
+    />
+  )
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end bg-ink/50" onClick={onClose}>
       <div
-        className="w-full rounded-t-3xl bg-white pb-10 max-h-[92dvh] overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('voiceEntryTitle')}
+        className="mx-auto max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[26px] bg-surface px-5 pb-[calc(24px+env(safe-area-inset-bottom))] pt-3"
         onClick={e => e.stopPropagation()}
       >
-        {/* Drag handle */}
-        <div className="mx-auto mt-3 h-1 w-12 rounded-full bg-gray-300" />
+        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-border" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4">
-          <h2 className="text-lg font-bold text-gray-900">{t('voiceEntryTitle')}</h2>
-          <div className="flex items-center gap-3">
-            {/* Speech language toggle — separate from the app display language */}
-            <div className="flex overflow-hidden rounded-xl border border-gray-200 text-sm">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-[22px] font-extrabold tracking-[-0.5px] text-ink">{t('voiceEntryTitle')}</h2>
+          <div className="flex items-center gap-2">
+            {/* Speech language — separate from the app display language */}
+            <div className="flex h-11 items-center gap-1 rounded-[22px] bg-mint-50 p-1">
               {[['en-IN', 'EN'], ['te-IN', 'తె']].map(([code, label]) => (
                 <button
                   key={code}
                   onClick={() => setSpeechLang(code)}
-                  className={`px-3 py-1.5 font-semibold transition-colors ${
-                    speechLang === code ? 'bg-green-600 text-white' : 'text-gray-500 hover:bg-gray-50'
+                  aria-pressed={speechLang === code}
+                  className={`h-9 rounded-[18px] px-3 text-sm ${
+                    speechLang === code ? 'bg-primary font-extrabold text-white' : 'font-semibold text-muted'
                   }`}
                 >
                   {label}
@@ -166,38 +182,36 @@ export default function VoiceEntry({ customer, vehicleTypes, onConfirm, onClose 
             </div>
             <button
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 text-lg leading-none"
-              aria-label="Close"
+              aria-label={t('close')}
+              className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-mint-50 text-ink"
             >
-              ✕
+              <X size={20} strokeWidth={2.4} aria-hidden="true" />
             </button>
           </div>
         </div>
 
-        <div className="space-y-5 px-5">
-
+        <div className="flex flex-col gap-4">
           {/* Unsupported browser */}
           {!supported && (
-            <div className="rounded-2xl bg-amber-50 px-5 py-6 text-center">
-              <p className="mb-2 text-4xl">🌐</p>
-              <p className="font-semibold text-amber-800">{t('chromeRequired')}</p>
-              <p className="mt-1 text-sm text-amber-700">{t('chromeMsg')}</p>
+            <div className="flex flex-col items-center gap-2 rounded-[18px] bg-amber-bg px-5 py-6 text-center">
+              <Globe size={36} strokeWidth={2} className="text-amber" aria-hidden="true" />
+              <p className="text-base font-extrabold text-amber">{t('chromeRequired')}</p>
+              <p className="text-sm font-medium text-amber">{t('chromeMsg')}</p>
             </div>
           )}
 
           {supported && (
             <>
               {/* Job context */}
-              <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-4 py-2.5">
-                <span className="text-sm text-gray-400">{t('jobFor')}</span>
-                <span className="font-semibold text-gray-800">{customer.name}</span>
+              <div className="flex items-center gap-2 rounded-2xl bg-mint-50 px-4 py-2.5">
+                <span className="text-sm font-medium text-muted">{t('jobFor')}</span>
+                <span className="text-base font-bold text-ink">{customer.name}</span>
               </div>
 
-              {/* Hint */}
               {phase !== 'done' && !heardText && (
                 <div className="text-center">
-                  <p className="text-sm text-gray-500">{t('voiceHint')}</p>
-                  <p className="mt-1 text-sm font-medium text-gray-700">{t('voiceExample')}</p>
+                  <p className="text-sm font-medium text-muted">{t('voiceHint')}</p>
+                  <p className="mt-1 text-sm font-bold text-ink">{t('voiceExample')}</p>
                 </div>
               )}
 
@@ -205,132 +219,98 @@ export default function VoiceEntry({ customer, vehicleTypes, onConfirm, onClose 
               <div className="flex justify-center py-2">
                 <button
                   onClick={phase === 'listening' ? stopListening : startListening}
-                  className={`relative flex h-24 w-24 items-center justify-center rounded-full text-5xl shadow-lg transition-transform active:scale-90 ${
-                    phase === 'listening'
-                      ? 'bg-red-500 text-white shadow-red-200'
-                      : 'bg-green-600 text-white shadow-green-200 hover:bg-green-700'
+                  className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white transition-transform active:scale-95 ${
+                    phase === 'listening' ? 'bg-danger shadow-danger' : 'bg-primary shadow-green'
                   }`}
-                  aria-label={phase === 'listening' ? 'Stop listening' : 'Start listening'}
+                  aria-label={phase === 'listening' ? t('stopListening') : t('startListening')}
                 >
-                  {phase === 'listening' ? '⬛' : '🎤'}
+                  {phase === 'listening'
+                    ? <Square size={30} fill="currentColor" aria-hidden="true" />
+                    : <Mic size={40} strokeWidth={2.2} aria-hidden="true" />}
                   {phase === 'listening' && (
-                    <span className="absolute -inset-1 animate-ping rounded-full bg-red-400 opacity-30" />
+                    <span className="absolute -inset-1 animate-ping rounded-full bg-danger opacity-30" />
                   )}
                 </button>
               </div>
 
               {phase === 'listening' && (
-                <p className="animate-pulse text-center text-sm font-medium text-red-500">
-                  {t('listeningLabel')}
-                </p>
+                <p className="animate-pulse text-center text-sm font-bold text-danger">{t('listeningLabel')}</p>
               )}
               {phase === 'done' && (
-                <p className="text-center text-xs text-gray-400">{t('tapToReRecord')}</p>
+                <p className="text-center text-xs font-semibold text-muted">{t('tapToReRecord')}</p>
               )}
 
               {interim && (
-                <p className="rounded-xl bg-gray-50 px-4 py-3 text-sm italic text-gray-400">
-                  {interim}…
-                </p>
+                <p className="rounded-2xl bg-mint-50 px-4 py-3 text-sm italic text-muted">{interim}…</p>
               )}
 
               {micError && (
-                <div className="rounded-xl bg-red-50 px-4 py-3">
-                  <p className="text-sm text-red-600">{micError}</p>
-                </div>
+                <p role="alert" className="rounded-2xl bg-due-bg px-4 py-3 text-sm font-semibold text-danger">{micError}</p>
               )}
 
               {/* Result + editable fields */}
               {phase === 'done' && heardText && (
-                <div className="space-y-3">
-                  <div className="rounded-xl bg-gray-50 px-4 py-3">
-                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-gray-400">
-                      {t('heardLabel')}
-                    </p>
-                    <p className="text-sm text-gray-700">"{heardText}"</p>
+                <div className="flex flex-col gap-3">
+                  <div className="rounded-2xl bg-mint-50 px-4 py-3">
+                    <p className="mb-1 text-xs font-extrabold text-muted">{t('heardLabel')}</p>
+                    <p className="text-sm font-semibold text-ink">"{heardText}"</p>
                   </div>
 
                   {parsed?.customer && parsed.customer.id !== customer.id && (
-                    <div className="rounded-xl bg-amber-50 px-4 py-3">
-                      <p className="text-sm text-amber-700">
-                        {t('customerMismatch', { heard: parsed.customer.name, customer: customer.name })}
-                      </p>
-                    </div>
+                    <p className="rounded-2xl bg-amber-bg px-4 py-3 text-sm font-semibold text-amber">
+                      {t('customerMismatch', { heard: parsed.customer.name, customer: customer.name })}
+                    </p>
                   )}
 
-                  <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-                    <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
-                      <p className="text-xs font-bold uppercase tracking-widest text-gray-400">
-                        {t('confirmEditLabel')}
-                      </p>
-                    </div>
-                    <div className="divide-y divide-gray-100">
-                      {/* Vehicle */}
-                      <div className="px-4 py-3">
-                        <p className="mb-2 text-xs text-gray-500">{t('vehicleLabel')}</p>
-                        <div className="flex flex-wrap gap-2">
-                          {vehicleTypes.map(v => (
+                  <div className="overflow-hidden rounded-[22px] bg-surface shadow-card">
+                    <p className="border-b border-divider px-4 py-3 text-sm font-extrabold text-ink">{t('confirmEditLabel')}</p>
+                    <div className="border-b border-divider px-4 py-3">
+                      <p className="mb-2 text-xs font-bold text-muted">{t('vehicleLabel')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {vehicleTypes.map(v => {
+                          const on = confirmVehicle?.type === v.type
+                          return (
                             <button
                               key={v.type}
                               onClick={() => setConfirmVehicle(v)}
-                              className={`rounded-xl px-3 py-1.5 text-sm font-medium transition-colors ${
-                                confirmVehicle?.type === v.type
-                                  ? 'bg-green-600 text-white'
-                                  : 'border border-gray-300 text-gray-700 hover:border-green-500'
+                              aria-pressed={on}
+                              className={`min-h-11 rounded-2xl border-2 px-3.5 text-sm ${
+                                on ? 'border-primary-bright bg-mint-100 font-extrabold text-primary' : 'border-border bg-field font-semibold text-ink'
                               }`}
                             >
                               {v.type}
                             </button>
-                          ))}
-                        </div>
-                        {!parsed?.vehicle && (
-                          <p className="mt-2 text-xs text-amber-600">{t('vehicleNotDetected')}</p>
-                        )}
+                          )
+                        })}
                       </div>
-
-                      {/* Start time */}
-                      <div className="flex items-center justify-between px-4 py-3">
-                        <p className="text-sm text-gray-700">{t('startTimeLabel')}</p>
-                        <input
-                          type="time"
-                          value={startTime}
-                          onChange={e => setStartTime(e.target.value)}
-                          className={`rounded-lg border px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-green-600 ${
-                            startTime ? 'border-gray-300' : 'border-amber-400 bg-amber-50'
-                          }`}
-                        />
-                      </div>
-
-                      {/* Stop time */}
-                      <div className="flex items-center justify-between px-4 py-3">
-                        <p className="text-sm text-gray-700">{t('stopTimeLabel')}</p>
-                        <input
-                          type="time"
-                          value={stopTime}
-                          onChange={e => setStopTime(e.target.value)}
-                          className={`rounded-lg border px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-green-600 ${
-                            stopTime ? 'border-gray-300' : 'border-amber-400 bg-amber-50'
-                          }`}
-                        />
-                      </div>
-
-                      {(!parsed?.start || !parsed?.stop) && (
-                        <p className="px-4 pb-3 text-xs text-amber-600">{t('timeNotDetected')}</p>
+                      {!parsed?.vehicle && (
+                        <p className="mt-2 text-xs font-semibold text-due">{t('vehicleNotDetected')}</p>
                       )}
                     </div>
+                    <div className="flex items-center justify-between border-b border-divider px-4 py-2.5">
+                      <p className="text-sm font-bold text-ink">{t('startTimeLabel')}</p>
+                      {timeInput(startTime, setStartTime, t('startTimeLabel'))}
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-2.5">
+                      <p className="text-sm font-bold text-ink">{t('stopTimeLabel')}</p>
+                      {timeInput(stopTime, setStopTime, t('stopTimeLabel'))}
+                    </div>
+                    {(!parsed?.start || !parsed?.stop) && (
+                      <p className="px-4 pb-3 text-xs font-semibold text-due">{t('timeNotDetected')}</p>
+                    )}
                   </div>
 
                   {startTime && stopTime && !timeValid && (
-                    <p className="text-center text-xs text-red-600">{t('stopAfterStartWarn')}</p>
+                    <p className="text-center text-sm font-semibold text-danger">{t('stopAfterStartWarn')}</p>
                   )}
                 </div>
               )}
 
               {/* Action buttons */}
-              <div className="flex gap-3 pt-1">
+              <div className="flex gap-2.5 pt-1">
                 <button
                   onClick={onClose}
-                  className="flex-1 rounded-2xl border border-gray-300 py-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="min-h-[58px] flex-1 rounded-[18px] bg-mint-50 text-base font-bold text-ink"
                 >
                   {t('cancel')}
                 </button>
@@ -338,8 +318,9 @@ export default function VoiceEntry({ customer, vehicleTypes, onConfirm, onClose 
                   <button
                     onClick={handleConfirm}
                     disabled={!timeValid || !confirmVehicle}
-                    className="flex-1 rounded-2xl bg-green-600 py-4 text-sm font-bold text-white shadow-md transition-transform active:scale-95 disabled:opacity-40 hover:bg-green-700"
+                    className="flex min-h-[58px] flex-1 items-center justify-center gap-2 rounded-[18px] bg-primary text-base font-extrabold text-white shadow-green active:scale-[0.98] disabled:opacity-40"
                   >
+                    <Check size={20} strokeWidth={3} aria-hidden="true" />
                     {t('addSessionBtn')}
                   </button>
                 )}

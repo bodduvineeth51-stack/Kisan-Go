@@ -1,30 +1,37 @@
 import { useState, useEffect, useMemo } from 'react'
+import { Check } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
-import CustomerCard from '../components/CustomerCard'
+import { formatMoney } from '../lib/format'
+import { formatPhone } from '../lib/phone'
+import { customerBalances } from '../lib/money'
 import BottomNav from '../components/BottomNav'
 import AddButton from '../components/AddButton'
-import { useTrans, LangToggle } from '../context/LangContext'
-import { localDigits } from '../lib/phone'
-import { useRecordedBy } from '../lib/useRecordedBy'
+import Avatar from '../components/Avatar'
+import CustomerForm from '../components/CustomerForm'
+import SearchBar, { FilterPills } from '../components/SearchBar'
+import { PageHeader, Spinner, ErrorCard, EmptyCard, Chip } from '../components/ui'
+import { useTrans } from '../context/LangContext'
 
-export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onTabChange }) {
-  const { t, lang } = useTrans()
+// Owner's Customers tab (kisan-design/screens/5-customers.html).
+// Tapping a customer opens their Customer page, where work is started.
+export default function Dashboard({ owner, activeTab, onTabChange, onOpenCustomer, initialFilter = 'all' }) {
+  const { t } = useTrans()
   const [customers, setCustomers] = useState([])
   const [workRecords, setWorkRecords] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState(initialFilter)
   const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const recordedBy = useRecordedBy(owner.id)
 
   useEffect(() => { fetchAll() }, [])
 
   async function fetchAll() {
     setLoading(true)
+    setError('')
     const [cResult, rResult] = await Promise.all([
-      supabase.from('customers').select('*').order('created_at', { ascending: false }),
-      supabase.from('work_records').select('*').order('created_at', { ascending: false }),
+      supabase.from('customers').select('*').order('name', { ascending: true }),
+      supabase.from('work_records').select('id, customer_id, amount, created_at'),
     ])
     setLoading(false)
     if (cResult.error) { setError(cResult.error.message); return }
@@ -33,159 +40,61 @@ export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onT
     setWorkRecords(rResult.data)
   }
 
+  const balances = useMemo(() => customerBalances(customers, workRecords), [customers, workRecords])
+  const dueOf = (c) => balances[c.id]?.due ?? 0
+  const owingCount = customers.filter((c) => dueOf(c) > 0).length
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return customers
-    return customers.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.phone.includes(q),
-    )
-  }, [customers, search])
-
-  async function handleTogglePaid(customer) {
-    setError('')
-    setCustomers((prev) =>
-      prev.map((c) => c.id === customer.id ? { ...c, is_paid: !c.is_paid } : c),
-    )
-    const { error } = await supabase
-      .from('customers')
-      .update({ is_paid: !customer.is_paid })
-      .eq('id', customer.id)
-    if (error) {
-      setCustomers((prev) =>
-        prev.map((c) => c.id === customer.id ? { ...c, is_paid: customer.is_paid } : c),
-      )
-      setError(error.message)
-    }
-  }
-
-  async function handleDelete(customer) {
-    if (!window.confirm(t('deleteConfirm', { name: customer.name }))) return
-    setError('')
-    setCustomers((prev) => prev.filter((c) => c.id !== customer.id))
-    const { error } = await supabase.from('customers').delete().eq('id', customer.id)
-    if (error) { fetchAll(); setError(error.message) }
-  }
-
-  async function handleRetryWhatsapp(record) {
-    const customer = customers.find((c) => c.id === record.customer_id)
-    if (!customer) return
-    setWorkRecords((prev) =>
-      prev.map((r) => r.id === record.id ? { ...r, whatsapp_status: 'sending' } : r),
-    )
-    // The function looks up the bill (customer, hours, amount) from the record.
-    const { data } = await supabase.functions.invoke('send-whatsapp', {
-      body: { record_id: record.id, lang },
+    return customers.filter((c) => {
+      if (q && !c.name.toLowerCase().includes(q) && !c.phone.includes(q.replace(/\s/g, ''))) return false
+      if (filter === 'due') return dueOf(c) > 0
+      if (filter === 'paid') return c.is_paid && (balances[c.id]?.billed ?? 0) > 0
+      return true
     })
-    const newStatus = data?.whatsapp_status ?? 'failed'
-    setWorkRecords((prev) =>
-      prev.map((r) => r.id === record.id ? { ...r, whatsapp_status: newStatus } : r),
-    )
-  }
+  }, [customers, search, filter, balances]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function openAdd() { setEditing(null); setShowForm(true) }
-  function openEdit(customer) { setEditing(customer); setShowForm(true) }
-
-  const unpaidCount = customers.filter((c) => !c.is_paid).length
+  const filters = [
+    ['all', t('filterAll')],
+    ['due', owingCount ? t('filterDueN', { n: owingCount }) : t('filterDue')],
+    ['paid', t('paid')],
+  ]
 
   return (
-    <div className="flex min-h-svh flex-col pb-24">
-      {/* Header */}
-      <header className="bg-green-600 px-4 py-3 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold tracking-tight">Kisan Go</h1>
-            <p className="text-xs text-green-100">{owner.name}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <LangToggle variant="dark" />
-            <button
-              onClick={onSignOut}
-              className="rounded-lg border border-green-500 px-3 py-1.5 text-xs font-medium text-green-100 hover:bg-green-700"
-            >
-              {t('signOut')}
-            </button>
-          </div>
-        </div>
-        {unpaidCount > 0 && (
-          <p className="mt-2 text-xs text-green-100">
-            {t('unpaidCount', { n: unpaidCount, s: unpaidCount !== 1 ? 's' : '' })}
+    <div className="min-h-svh">
+      <div className="mx-auto flex w-full max-w-lg flex-col gap-3 px-5 pb-44 pt-4">
+        <PageHeader title={t('customersTab')} chip={loading ? null : t('farmersCount', { n: customers.length })} />
+
+        <SearchBar value={search} onChange={setSearch} />
+        <FilterPills options={filters} value={filter} onChange={setFilter} />
+
+        {error && <ErrorCard message={error} onRetry={fetchAll} />}
+        {loading && <Spinner />}
+
+        {!loading && !error && customers.length === 0 && (
+          <EmptyCard title={t('noCustomers')} sub={t('noCustomersSub')} />
+        )}
+        {!loading && customers.length > 0 && filtered.length === 0 && (
+          <p className="py-10 text-center text-sm font-semibold text-muted">
+            {search ? t('noSearchMatch', { q: search }) : t('noFilterMatch')}
           </p>
         )}
-      </header>
 
-      <div className="mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-44">
-        <input
-          type="search"
-          placeholder={t('searchPlaceholder')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600"
-        />
-
-        {error && (
-          <div className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-center">
-            <p className="text-sm text-red-600">{error}</p>
-            <button
-              onClick={fetchAll}
-              className="mt-2 text-sm font-semibold text-red-600 underline hover:text-red-700"
-            >
-              {t('retry')}
-            </button>
-          </div>
-        )}
-
-        <div className="mt-4 space-y-3">
-          {loading && (
-            <div className="flex flex-col items-center gap-3 py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-200 border-t-green-600" />
-              <p className="text-sm text-gray-400">{t('loading')}</p>
-            </div>
-          )}
-
-          {!loading && customers.length === 0 && (
-            <div className="py-16 text-center">
-              <p className="text-gray-400">{t('noCustomers')}</p>
-              <p className="mt-1 text-sm text-gray-400">{t('noCustomersSub')}</p>
-            </div>
-          )}
-
-          {!loading && customers.length > 0 && filtered.length === 0 && (
-            <p className="py-16 text-center text-sm text-gray-400">
-              {t('noSearchMatch', { q: search })}
-            </p>
-          )}
-
-          {filtered.map((c) => (
-            <CustomerCard
-              key={c.id}
-              customer={c}
-              records={workRecords.filter((r) => r.customer_id === c.id)}
-              onTogglePaid={() => handleTogglePaid(c)}
-              onDelete={() => handleDelete(c)}
-              onEdit={() => openEdit(c)}
-              onStartJob={() => onStartJob(c)}
-              onRetryWhatsapp={(record) => handleRetryWhatsapp(record)}
-              recordedBy={recordedBy}
-            />
+        <div className="flex flex-col gap-2">
+          {!loading && filtered.map((c) => (
+            <CustomerRow key={c.id} customer={c} due={dueOf(c)} billed={balances[c.id]?.billed ?? 0} onClick={() => onOpenCustomer(c)} />
           ))}
         </div>
       </div>
 
-      <AddButton onClick={openAdd} ariaLabel={t('addCustomer')} />
+      <AddButton onClick={() => setShowForm(true)} ariaLabel={t('tileAddCustomer')} />
 
       {showForm && (
         <CustomerForm
-          editing={editing}
+          editing={null}
           ownerId={owner.id}
           onClose={() => setShowForm(false)}
-          onSaved={(saved) => {
-            if (editing) {
-              setCustomers((prev) => prev.map((c) => c.id === saved.id ? saved : c))
-            } else {
-              setCustomers((prev) => [saved, ...prev])
-            }
-            setShowForm(false)
-          }}
+          onSaved={(saved) => { setShowForm(false); onOpenCustomer(saved) }}
         />
       )}
 
@@ -194,110 +103,28 @@ export default function Dashboard({ owner, onSignOut, onStartJob, activeTab, onT
   )
 }
 
-const CUSTOMER_NAME_MAX = 20
-
-export function CustomerForm({ editing, ownerId, onClose, onSaved }) {
+export function CustomerRow({ customer, due = 0, billed = 0, onClick, right }) {
   const { t } = useTrans()
-  const [name, setName] = useState(editing?.name ?? '')
-  const [phone, setPhone] = useState(editing?.phone ?? '')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    if (!name.trim()) { setError(t('enterCustomerName')); return }
-    const digits = localDigits(phone)
-    if (!digits) { setError(t('validPhoneErr')); return }
-
-    setLoading(true)
-    let result
-    if (editing) {
-      result = await supabase
-        .from('customers')
-        .update({ name: name.trim(), phone: digits })
-        .eq('id', editing.id)
-        .select()
-        .single()
-    } else {
-      result = await supabase
-        .from('customers')
-        .insert({ owner_id: ownerId, name: name.trim(), phone: digits, is_paid: false })
-        .select()
-        .single()
-    }
-    setLoading(false)
-    if (result.error) {
-      // Phase 2: one customer per phone per business (unique index).
-      setError(result.error.code === '23505' ? t('customerPhoneExists') : result.error.message)
-      return
-    }
-    onSaved(result.data)
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
-      <div
-        className="w-full rounded-t-2xl bg-white px-4 pb-8 pt-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {editing ? t('editCustomer') : t('newCustomer')}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-xl leading-none text-gray-400 hover:text-gray-600"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-
-        <form className="space-y-3" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder={t('customerNameLabel')}
-            value={name}
-            maxLength={CUSTOMER_NAME_MAX}
-            onChange={(e) => setName(e.target.value.slice(0, CUSTOMER_NAME_MAX))}
-            autoFocus
-            className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600"
-          />
-
-          <div className="flex items-center rounded-xl border border-gray-300 focus-within:border-green-600 focus-within:ring-1 focus-within:ring-green-600">
-            <span className="pl-4 text-sm text-gray-500">+91</span>
-            <input
-              type="tel"
-              inputMode="numeric"
-              maxLength={13}
-              placeholder="9876543210"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-              className="w-full rounded-xl px-2 py-3 text-base outline-none"
-            />
-          </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 rounded-xl border border-gray-300 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              {t('cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white disabled:opacity-60 hover:bg-green-700"
-            >
-              {loading ? t('savingProfile') : t('save')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-[18px] bg-surface px-3.5 py-2.5 text-left text-ink shadow-card active:scale-[0.99]"
+    >
+      <Avatar id={customer.id} name={customer.name} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-base font-bold">{customer.name}</span>
+        <span className="block text-[13px] font-medium text-muted">{formatPhone(customer.phone)}</span>
+      </span>
+      {right ?? (
+        due > 0 ? (
+          <Chip tone="due" className="rounded-[10px] px-2.5 py-1 text-sm">{formatMoney(due)}</Chip>
+        ) : billed > 0 ? (
+          <Chip className="rounded-[10px] px-2.5 py-1">
+            <Check size={14} strokeWidth={3.2} aria-hidden="true" />
+            {t('paid')}
+          </Chip>
+        ) : null
+      )}
+    </button>
   )
 }

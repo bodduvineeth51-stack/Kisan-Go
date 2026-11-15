@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { Check, Lock } from 'lucide-react'
 import { RecaptchaVerifier, signInWithPhoneNumber, signOut } from 'firebase/auth'
 import { supabase } from '../lib/supabaseClient'
 import { getFirebaseAuth } from '../lib/firebaseClient'
-import { useTrans, LangToggle } from '../context/LangContext'
-import { localDigits, toE164 } from '../lib/phone'
+import { useTrans } from '../context/LangContext'
+import { localDigits, toE164, formatPhone } from '../lib/phone'
 import { readInvitePhone } from '../lib/invite'
+import { LogoMark, Wordmark, ChoiceButton, PhoneField, Field, PrimaryButton } from '../components/ui'
 
 // Firebase error codes worth a plain-language message; anything else falls
 // back to the generic login error.
@@ -14,6 +16,46 @@ const FIREBASE_ERRORS = {
   'auth/code-expired': 'otpExpired',
   'auth/too-many-requests': 'tooManyAttempts',
   'auth/quota-exceeded': 'tooManyAttempts',
+}
+
+// Mint header with the logo, bilingual tagline and the fields drawing.
+export function LoginHero({ compact = false }) {
+  const { t, lang } = useTrans()
+  return (
+    <div className={`relative flex flex-col gap-4 overflow-hidden rounded-b-[36px] bg-mint-100 px-6 ${compact ? 'pt-6' : 'pt-9'}`}>
+      <div className="absolute -right-[60px] -top-[60px] h-[220px] w-[220px] rounded-full bg-mint-200" />
+      <div className="absolute -left-[30px] top-[140px] h-[90px] w-[90px] rounded-full bg-lime opacity-50" />
+      <LogoMark size={compact ? 48 : 60} className="relative" />
+      <div className="relative">
+        <Wordmark className={`block leading-none ${compact ? 'text-[34px] tracking-[-1.2px]' : 'text-[44px] tracking-[-1.5px]'}`} />
+        <p className="mt-2.5 text-lg font-semibold text-mint-ink">{t('tagline')}</p>
+        {lang === 'en' && <p className="mt-0.5 text-base font-medium text-mint-ink">మీ వాహనం లెక్కలు, మీ ఫోన్‌లో.</p>}
+      </div>
+      <svg viewBox="0 0 342 96" preserveAspectRatio="none" aria-hidden="true" className={`relative -mx-6 block w-[calc(100%+48px)] ${compact ? 'h-14' : 'h-24'}`}>
+        <circle cx="286" cy="38" r="20" className="fill-sun" />
+        <path d="M0 72 Q90 44 171 62 T342 52 V96 H0z" className="fill-circle-2" />
+        <path d="M0 84 Q100 62 190 78 T342 70 V96 H0z" className="fill-circle-1" />
+        <path d="M20 96 L60 76 M70 96 L105 74 M120 96 L150 74 M170 96 L196 76 M220 96 L242 76 M270 96 L288 74 M318 96 L332 76" className="stroke-grass" strokeWidth="2.5" fill="none" />
+      </svg>
+    </div>
+  )
+}
+
+export function LanguageChoice() {
+  const { lang, setLang } = useTrans()
+  return (
+    <div className="flex flex-col gap-2.5">
+      <p className="text-[15px] font-bold">Choose language · భాష ఎంచుకోండి</p>
+      <div className="grid grid-cols-2 gap-3">
+        {[['te', 'తెలుగు'], ['en', 'English']].map(([code, label]) => (
+          <ChoiceButton key={code} selected={lang === code} onClick={() => setLang(code)} className="h-[58px] text-[19px]">
+            {lang === code && <Check size={18} strokeWidth={3} aria-hidden="true" />}
+            {label}
+          </ChoiceButton>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function Login() {
@@ -105,102 +147,100 @@ export default function Login() {
     }
   }
 
+  function backToPhone() {
+    setStep('phone'); setOtp(''); setError('')
+    verifiedUser.current = null; confirmation.current = null
+    verifier.current?.clear(); verifier.current = null
+  }
+
+  const errorBox = error && (
+    <p role="alert" className="rounded-2xl bg-due-bg px-4 py-3 text-sm font-semibold text-danger">{error}</p>
+  )
+
   return (
-    <div className="flex min-h-svh items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-sm">
-        {/* App name + lang toggle */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Kisan Go</h1>
-            <p className="mt-0.5 text-sm text-gray-500">{t('tagline')}</p>
-          </div>
-          <LangToggle variant="light" />
-        </div>
+    <div className="flex min-h-svh flex-col bg-surface">
+      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
+        <LoginHero />
 
         {step === 'phone' && (
-          <form className="mt-6 space-y-4" onSubmit={handleSendOtp}>
+          <form className="flex flex-1 flex-col gap-[22px] px-6 pb-6 pt-7" onSubmit={handleSendOtp}>
             {invitedPhone && (
-              <p className="rounded-xl bg-mint-100 px-3 py-2.5 text-sm font-semibold text-primary">
-                {t('inviteBanner')}
-              </p>
+              <p className="rounded-2xl bg-mint-100 px-4 py-3 text-sm font-semibold text-primary">{t('inviteBanner')}</p>
             )}
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                {t('phoneLabel')}
-              </label>
-              <div className="mt-1 flex items-center rounded-lg border border-gray-300 focus-within:border-green-600 focus-within:ring-1 focus-within:ring-green-600">
-                <span className="pl-3 text-gray-500">+91</span>
-                <input
-                  id="phone"
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength={13}
-                  placeholder="9876543210"
-                  value={phone}
-                  disabled={loading}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                  className="w-full rounded-lg px-2 py-2.5 outline-none"
-                />
-              </div>
-            </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <button
-              type="submit"
+            <LanguageChoice />
+            <PhoneField
+              id="phone"
+              big
+              label={t('phoneLabel')}
+              hint={t('codeHint')}
+              value={phone}
               disabled={loading}
-              className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white transition hover:bg-green-700 disabled:opacity-60"
-            >
-              {loading ? t('sending') : t('sendOtp')}
-            </button>
+              onChange={setPhone}
+            />
+            {errorBox}
+            <div className="mt-auto flex flex-col gap-4 pt-2">
+              <PrimaryButton type="submit" disabled={loading} arrow={!loading}>
+                {loading ? t('sending') : t('sendOtp')}
+              </PrimaryButton>
+              <PrivacyNote />
+            </div>
           </form>
         )}
 
         {step === 'otp' && (
-          <form className="mt-6 space-y-4" onSubmit={handleVerifyOtp}>
-            <div>
-              <label htmlFor="otp" className="block text-sm font-medium text-gray-700">
-                {t('otpLabel', { phone: localDigits(phone) ?? phone })}
-              </label>
-              <input
-                id="otp"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                placeholder="123456"
-                value={otp}
+          <form className="flex flex-1 flex-col gap-[22px] px-6 pb-6 pt-7" onSubmit={handleVerifyOtp}>
+            <Field
+              id="otp"
+              label={t('otpLabel', { phone: formatPhone(localDigits(phone) ?? phone) })}
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              placeholder="••••••"
+              value={otp}
+              disabled={loading}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+              inputClassName="text-center text-[26px]! font-extrabold! tracking-[10px]"
+            />
+            {errorBox}
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
                 disabled={loading}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 tracking-widest outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600"
-              />
+                onClick={backToPhone}
+                className="min-h-11 text-sm font-bold text-muted"
+              >
+                {t('changePhone')}
+              </button>
+              <button
+                type="button"
+                disabled={loading || resendIn > 0}
+                onClick={handleSendOtp}
+                className="min-h-11 rounded-xl bg-mint-50 px-3 text-sm font-bold text-primary disabled:bg-transparent disabled:text-muted"
+              >
+                {resendIn > 0 ? t('resendIn', { n: resendIn }) : t('resendOtp')}
+              </button>
             </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white transition hover:bg-green-700 disabled:opacity-60"
-            >
-              {loading ? t('verifying') : t('verifyBtn')}
-            </button>
-            <button
-              type="button"
-              disabled={loading || resendIn > 0}
-              onClick={handleSendOtp}
-              className="min-h-11 w-full text-center text-sm font-bold text-primary disabled:text-muted"
-            >
-              {resendIn > 0 ? t('resendIn', { n: resendIn }) : t('resendOtp')}
-            </button>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => { setStep('phone'); setOtp(''); setError(''); verifiedUser.current = null; confirmation.current = null; verifier.current?.clear(); verifier.current = null }}
-              className="w-full text-center text-sm text-gray-500 hover:text-gray-700"
-            >
-              {t('changePhone')}
-            </button>
+            <div className="mt-auto flex flex-col gap-4 pt-2">
+              <PrimaryButton type="submit" disabled={loading} arrow={!loading}>
+                {loading ? t('verifying') : t('verifyBtn')}
+              </PrimaryButton>
+              <PrivacyNote />
+            </div>
           </form>
         )}
         <div ref={recaptchaEl} />
       </div>
     </div>
+  )
+}
+
+function PrivacyNote() {
+  const { t } = useTrans()
+  return (
+    <p className="flex items-center justify-center gap-1.5 text-[13px] font-medium text-muted">
+      <Lock size={16} strokeWidth={2.2} className="text-primary" aria-hidden="true" />
+      {t('privacyNote')}
+    </p>
   )
 }

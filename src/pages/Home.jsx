@@ -5,38 +5,10 @@ import { formatMoney, formatHours } from '../lib/format'
 import BottomNav from '../components/BottomNav'
 import AddButton from '../components/AddButton'
 import Avatar from '../components/Avatar'
-import { CustomerForm } from './Dashboard'
-import { useTrans } from '../context/LangContext'
+import CustomerForm from '../components/CustomerForm'
+import { Logo, Spinner, ErrorCard, EmptyCard } from '../components/ui'
+import { useTrans, LangToggle } from '../context/LangContext'
 import { useRecordedBy } from '../lib/useRecordedBy'
-
-function Logo() {
-  return (
-    <div className="flex items-center gap-2.5">
-      <svg width="38" height="38" viewBox="0 0 36 36" aria-hidden="true">
-        <rect width="36" height="36" rx="11" fill="#15803D" />
-        <circle cx="18" cy="21" r="8" fill="none" stroke="#BEF264" strokeWidth="3" />
-        <circle cx="18" cy="21" r="2.5" fill="#BEF264" />
-        <path d="M18 13c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5z" fill="#FFFFFF" />
-      </svg>
-      <span className="text-[22px] font-extrabold tracking-[-0.5px] text-ink">
-        Kisan<span className="text-primary-bright">Go</span>
-      </span>
-    </div>
-  )
-}
-
-function LangButton() {
-  const { t, lang, setLang } = useTrans()
-  return (
-    <button
-      onClick={() => setLang(lang === 'en' ? 'te' : 'en')}
-      aria-label={t('changeLanguage')}
-      className="h-11 rounded-[22px] bg-surface px-4 text-sm font-bold text-primary shadow-[0_2px_10px_rgba(15,42,26,0.08)]"
-    >
-      తె | EN
-    </button>
-  )
-}
 
 function Tile({ icon: Icon, iconClass, label, onClick }) {
   return (
@@ -61,7 +33,7 @@ function StatusChip({ record, customer }) {
   return <span className={`${base} bg-due-bg text-due`}>{t('billNotSent')}</span>
 }
 
-export default function Home({ owner, activeTab, onTabChange }) {
+export default function Home({ owner, activeTab, onTabChange, onOpenCustomer }) {
   const { t, lang } = useTrans()
   const [customers, setCustomers]     = useState([])
   const [workRecords, setWorkRecords] = useState([])
@@ -127,7 +99,7 @@ export default function Home({ owner, activeTab, onTabChange }) {
         {/* Top bar */}
         <div className="flex h-11 items-center justify-between">
           <Logo />
-          <LangButton />
+          <LangToggle />
         </div>
 
         {/* Greeting */}
@@ -138,17 +110,10 @@ export default function Home({ owner, activeTab, onTabChange }) {
           </h1>
         </div>
 
-        {error && (
-          <div className="rounded-[18px] bg-surface px-4 py-3 text-center shadow-card">
-            <p className="text-sm font-semibold text-danger">{error}</p>
-            <button onClick={fetchAll} className="mt-2 min-h-11 text-sm font-bold text-primary underline">
-              {t('retry')}
-            </button>
-          </div>
-        )}
+        {error && <ErrorCard message={error} onRetry={fetchAll} />}
 
         {/* Today's earnings hero card */}
-        <div className="relative flex flex-col gap-2.5 overflow-hidden rounded-[26px] bg-primary p-5 text-white shadow-[0_10px_24px_rgba(21,128,61,0.28)]">
+        <div className="relative flex flex-col gap-2.5 overflow-hidden rounded-[26px] bg-primary p-5 text-white shadow-hero">
           <div className="absolute -right-10 -top-[50px] h-[170px] w-[170px] rounded-full bg-circle-1 opacity-45" />
           <div className="absolute right-10 top-[60px] h-20 w-20 rounded-full bg-circle-2 opacity-30" />
           <div className="relative flex items-center gap-2">
@@ -180,7 +145,7 @@ export default function Home({ owner, activeTab, onTabChange }) {
         {/* Shortcut tiles */}
         <div className="grid grid-cols-3 gap-2.5">
           <Tile icon={UserPlus} iconClass="bg-mint-100 text-primary" label={t('tileAddCustomer')} onClick={() => setShowForm(true)} />
-          <Tile icon={Wallet} iconClass="bg-amber-bg text-amber" label={t('tileGotPayment')} onClick={() => onTabChange('customers')} />
+          <Tile icon={Wallet} iconClass="bg-amber-bg text-amber" label={t('tileGotPayment')} onClick={() => onTabChange('customers', { filter: 'due' })} />
           <Tile icon={MessageCircle} iconClass="bg-blue-bg text-blue" label={t('tileSendReminders')} onClick={() => onTabChange('earnings')} />
         </div>
 
@@ -193,16 +158,10 @@ export default function Home({ owner, activeTab, onTabChange }) {
             </button>
           </div>
 
-          {loading && (
-            <div className="flex justify-center py-10">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-mint-200 border-t-primary" />
-            </div>
-          )}
+          {loading && <Spinner />}
 
           {!loading && !error && todayRecs.length === 0 && (
-            <div className="rounded-[18px] bg-surface px-4 py-6 text-center text-sm font-semibold text-muted shadow-card">
-              {t('noJobsToday')}
-            </div>
+            <EmptyCard title={t('noJobsToday')} sub={t('noJobsTodaySub')} />
           )}
 
           {!loading && todayRecs.map((r) => {
@@ -210,8 +169,8 @@ export default function Home({ owner, activeTab, onTabChange }) {
             return (
               <button
                 key={r.id}
-                onClick={() => onTabChange('customers')}
-                className="flex items-center gap-3 rounded-[18px] bg-surface px-3.5 py-2.5 text-left text-ink shadow-card"
+                onClick={() => c && onOpenCustomer(c)}
+                className="flex items-center gap-3 rounded-[18px] bg-surface px-3.5 py-2.5 text-left text-ink shadow-card active:scale-[0.99]"
               >
                 <Avatar id={r.customer_id} name={c?.name} />
                 <span className="min-w-0 flex-1">
@@ -241,8 +200,8 @@ export default function Home({ owner, activeTab, onTabChange }) {
           ownerId={owner.id}
           onClose={() => setShowForm(false)}
           onSaved={(saved) => {
-            setCustomers((prev) => [saved, ...prev])
             setShowForm(false)
+            onOpenCustomer(saved)
           }}
         />
       )}
