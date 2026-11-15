@@ -210,6 +210,28 @@ Files: `capacitor.config.json` (new), `android/` (generated native project), `sr
 - Firebase phone login still uses the web reCAPTCHA flow; `localhost` must be in Firebase → Authentication → Settings → Authorized domains.
 - iOS not added yet (needs full Xcode + CocoaPods; Firebase web reCAPTCHA won't work under iOS's `capacitor://` scheme — would need native Firebase auth).
 
+### Phase 10 — UI redesign (kisan-design/) ✅ (complete)
+All screens now follow `kisan-design/DESIGN.md` and the reference screens. This replaces the
+screen/file notes in Phases 2–7 where they differ (e.g. `Dashboard.jsx` and `CustomerCard.jsx`
+no longer exist; the old green header bar and `LangToggle` are gone).
+
+**Screens and files:**
+- Tabs (floating `BottomNav`): Home (`Home.jsx`), Customers (`Customers.jsx`), Money (`EarningsScreen.jsx`), More (`MoreScreen.jsx` — profile, vehicles & rates, language, sign out).
+- Full-screen layers, held in `view` state in `App.jsx`: `{ name: 'customer' | 'timer' | 'bill', customer, record? }`.
+  Customer page (`CustomerPage.jsx`) → Start work → Timer (`TimerScreen.jsx`) → Finish → Bill sent (`BillSent.jsx`) → Done → Home.
+- Tapping a customer anywhere (list, Home's today's jobs, Money's owers, after adding) opens the Customer page.
+- Home's "Got payment" tile opens Customers with the "Owes money" filter (`onTabChange('customers', { filter: 'due' })`).
+- Shared: `components/CustomerForm.jsx` (add/edit sheet), `components/Logo.jsx` (`Logo`, `LogoMark`), `LangButton` in `LangContext.jsx`.
+- `lib/speech.js`: `listenOnce({ lang, onInterim, onStart })` → `{ result, stop }`, web Speech API or the Capacitor plugin on Android. Used by VoiceEntry and the voice search on Customers.
+- `lib/bills.js`: `sendBill` (calls send-whatsapp, returns status, never throws), `billMessage` (preview — keep in step with the edge function's `buildMessage`), `reminderLink` (wa.me with a reminder typed in), `moneyByCustomer`, `formatPhone`, `daysSince`.
+
+**Behaviour notes:**
+- Timer pre-selects the last-used vehicle (`localStorage` key `kisan_last_vehicle`), so open customer → Start is 2 taps. Finish works while running (stops the session first). Leaving or changing customer with recorded time asks first.
+- The WhatsApp bill is now sent from the Bill sent screen on arrival (a ref guards StrictMode's double effect). It shows Retry when sending fails; the Customer page history has Retry too.
+- "Record payment" / "Got cash now?" set `customers.is_paid = true`; "Mark unpaid" reverses it. Payments are still a per-customer flag — there is no payments table, so partial payments and the design's "Payment received" history rows are not shown.
+- Money: Today / This week (from Monday) / Season (all records). The season chip (Kharif / Rabi / Zaid) is only a label. "Remind all" from the design is left out: each person has their own WhatsApp remind button.
+- WhatsApp signature is "— Sent via Kisan Go" in the edge function; redeploy `send-whatsapp` for it to take effect.
+
 ## Rules
 - All UI must follow `kisan-design/DESIGN.md` (colours, fonts, spacing,
   shapes, icons) and match the reference screens in `kisan-design/screens/`.
