@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { driverRpc, AccessRemovedError } from '../lib/roles'
 import { formatMoney, formatHours } from '../lib/format'
 import { lastVehicle, rememberVehicle } from '../lib/vehicles'
+import { holdUpdates } from '../lib/appUpdate'
 import VoiceEntry from '../components/VoiceEntry'
 import Avatar from '../components/Avatar'
 import { BackButton, ChoiceButton, Field, PrimaryButton, SecondaryButton, Sheet } from '../components/ui'
@@ -66,6 +67,9 @@ export default function TimerScreen({
   const [submitPhase, setSubmitPhase] = useState(null)
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(null) // { record, whatsapp_status, sessionCount }
+
+  // Never swap in a new app version (page reload) while this screen is open.
+  useEffect(() => holdUpdates(), [])
 
   useEffect(() => {
     if (!activeStart) return
